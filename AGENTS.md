@@ -11,6 +11,7 @@ Read these documents before changing this repository:
 ## Hard rules
 
 - English only in source, comments, and docs.
+- Every public component or widget change updates its doc, changelog, and demo page in the same change. UI docs live in `doc/components/`. Widget docs live in `doc/widgets/`. Do not mix them. See [doc/conventions.md](doc/conventions.md).
 - Public components and icons are subpath exports. Do not add a root barrel that loads every component or every icon.
 - Components use literal Tailwind classes. Override them with `className`. Do not add component CSS or `--sfp-*` variables.
 - Hosts must `@source` this package. See [doc/theming.md](doc/theming.md).

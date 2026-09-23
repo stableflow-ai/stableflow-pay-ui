@@ -19,11 +19,21 @@ Code, comments, identifiers, user-facing copy, and documentation are English onl
 - `pay-widgets` and the demo import `@stableflow/pay-ui/<name>` or `@stableflow/pay-ui/icons/<name>`.
 - `overlay` is internal. Feature code and widgets should not add new imports from `@stableflow/pay-ui/overlay`.
 
-When a public component is added or changed:
+Every add, change, or removal of a public component or widget ships documentation in the same change. Do not leave the docs for a follow-up. A prop, slot, default class, or behavior change counts. A comment-only edit does not.
 
-1. Update `doc/components/<name>.md`.
-2. Append an entry to `doc/components/CHANGELOG.md`.
-3. Add or update a demo page.
+UI components and widgets use different docs. Do not put a widget page under `doc/components/`.
+
+`pay-ui`:
+
+1. Create or update `doc/components/<name>.md`: import path, props, className slots, and default look when that look changes.
+2. Append an entry under `Unreleased` in `doc/components/CHANGELOG.md`.
+3. Add or update the matching demo page under the UI menu.
+
+`pay-widgets`:
+
+1. Create or update `doc/widgets/<name>.md`. Cover the data boundary (provider props, callbacks, config the widget loads) as well as the dialog props and className slots.
+2. Append an entry under `Unreleased` in `doc/widgets/CHANGELOG.md`.
+3. Add or update the matching demo page under the Widgets menu.
 
 ## Icons
 
