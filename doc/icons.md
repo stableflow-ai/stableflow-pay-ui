@@ -12,11 +12,14 @@ The set started as the union of the v2 and v3 icon directories. When the same fi
 
 Files whose geometry differed from v3: alert, duration, lock, overview.
 
-Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `IconSettings` (keep `IconSetting`), and `IconProcessing` (keep `IconLoading`). Status marks that are a glyph plus a colored shape stay out of the set: `IconAlertCircle`, `IconBack`, `IconFieldError`, `IconPayoutPending`, `IconPayoutFailed`, `IconPayoutPaid`, and `IconSuccess`.
+Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `IconSettings` (keep `IconSetting`), and `IconProcessing` (keep `IconLoading`). Status marks that are a glyph plus a colored shape stay out of the set: `IconBack`, `IconFieldError`, `IconPayoutPending`, `IconPayoutFailed`, `IconPayoutPaid`, and `IconSuccess`.
+
+`duration` exports both `IconDuration` and `IconDuration2`. `alert-circle` exports `IconAlertCircle`. `member` exports `IconMember`.
 
 ## Names
 
 - `alert`
+- `alert-circle`
 - `all-networks`
 - `arrow-down`
 - `bonus`
@@ -50,6 +53,7 @@ Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `Icon
 - `loading`
 - `lock`
 - `logout`
+- `member`
 - `meno`
 - `menu`
 - `money`

@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import type { IconProps } from "@stableflow/pay-ui/icons/types";
 import { IconAlert } from "@stableflow/pay-ui/icons/alert";
+import { IconAlertCircle } from "@stableflow/pay-ui/icons/alert-circle";
 import { IconAllNetworks } from "@stableflow/pay-ui/icons/all-networks";
 import { IconArrowDown } from "@stableflow/pay-ui/icons/arrow-down";
 import { IconBonus } from "@stableflow/pay-ui/icons/bonus";
@@ -16,7 +17,7 @@ import { IconCopy } from "@stableflow/pay-ui/icons/copy";
 import { IconDatabase } from "@stableflow/pay-ui/icons/database";
 import { IconDelete } from "@stableflow/pay-ui/icons/delete";
 import { IconDownload } from "@stableflow/pay-ui/icons/download";
-import { IconDuration } from "@stableflow/pay-ui/icons/duration";
+import { IconDuration, IconDuration2 } from "@stableflow/pay-ui/icons/duration";
 import { IconEmail } from "@stableflow/pay-ui/icons/email";
 import { IconExpenseUser } from "@stableflow/pay-ui/icons/expense-user";
 import { IconExpense } from "@stableflow/pay-ui/icons/expense";
@@ -35,6 +36,7 @@ import { IconLoading } from "@stableflow/pay-ui/icons/loading";
 import { IconLock } from "@stableflow/pay-ui/icons/lock";
 import { IconLogout } from "@stableflow/pay-ui/icons/logout";
 import { IconMeno } from "@stableflow/pay-ui/icons/meno";
+import { IconMember } from "@stableflow/pay-ui/icons/member";
 import { IconMenu } from "@stableflow/pay-ui/icons/menu";
 import { IconMoney } from "@stableflow/pay-ui/icons/money";
 import { IconNode } from "@stableflow/pay-ui/icons/node";
@@ -71,6 +73,7 @@ import { Page } from "./theme";
 
 const ICONS: { file: string; name: string; Icon: ComponentType<IconProps> }[] = [
   { file: "alert", name: "IconAlert", Icon: IconAlert },
+  { file: "alert-circle", name: "IconAlertCircle", Icon: IconAlertCircle },
   { file: "all-networks", name: "IconAllNetworks", Icon: IconAllNetworks },
   { file: "arrow-down", name: "IconArrowDown", Icon: IconArrowDown },
   { file: "bonus", name: "IconBonus", Icon: IconBonus },
@@ -87,6 +90,7 @@ const ICONS: { file: string; name: string; Icon: ComponentType<IconProps> }[] = 
   { file: "delete", name: "IconDelete", Icon: IconDelete },
   { file: "download", name: "IconDownload", Icon: IconDownload },
   { file: "duration", name: "IconDuration", Icon: IconDuration },
+  { file: "duration", name: "IconDuration2", Icon: IconDuration2 },
   { file: "email", name: "IconEmail", Icon: IconEmail },
   { file: "expense-user", name: "IconExpenseUser", Icon: IconExpenseUser },
   { file: "expense", name: "IconExpense", Icon: IconExpense },
@@ -108,6 +112,7 @@ const ICONS: { file: string; name: string; Icon: ComponentType<IconProps> }[] = 
   { file: "lock", name: "IconLock", Icon: IconLock },
   { file: "logout", name: "IconLogout", Icon: IconLogout },
   { file: "meno", name: "IconMeno", Icon: IconMeno },
+  { file: "member", name: "IconMember", Icon: IconMember },
   { file: "menu", name: "IconMenu", Icon: IconMenu },
   { file: "money", name: "IconMoney", Icon: IconMoney },
   { file: "node", name: "IconNode", Icon: IconNode },
