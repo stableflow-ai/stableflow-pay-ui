@@ -1,8 +1,15 @@
 {
   "name": "@stableflow/pay-ui",
-  "version": "0.0.0",
+  "version": "0.0.1-beta-a286a74da1-20260923",
   "description": "Presentational React components and icons for Stableflow Pay.",
-  "keywords": ["stableflow", "react", "ui", "components", "tailwindcss", "icons"],
+  "keywords": [
+    "stableflow",
+    "react",
+    "ui",
+    "components",
+    "tailwindcss",
+    "icons"
+  ],
   "type": "module",
   "sideEffects": false,
   "files": [

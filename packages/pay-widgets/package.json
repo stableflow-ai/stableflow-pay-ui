@@ -1,8 +1,15 @@
 {
   "name": "@stableflow/pay-widgets",
-  "version": "0.0.0",
+  "version": "0.0.1-beta-a286a74da1-20260923",
   "description": "Business widgets for Stableflow Pay. Data comes in through props and callbacks.",
-  "keywords": ["stableflow", "react", "widgets", "token-select", "payments", "tailwindcss"],
+  "keywords": [
+    "stableflow",
+    "react",
+    "widgets",
+    "token-select",
+    "payments",
+    "tailwindcss"
+  ],
   "type": "module",
   "sideEffects": false,
   "files": [
