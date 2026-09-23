@@ -1,6 +1,6 @@
 {
   "name": "@stableflow/pay-widgets",
-  "version": "0.0.1-beta-82ede460a5-20260923",
+  "version": "0.0.0",
   "type": "module",
   "sideEffects": false,
   "files": [
