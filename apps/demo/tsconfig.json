@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@stableflow/pay-widgets/*": ["../../packages/pay-widgets/src/*/index.ts"],
+      "@stableflow/pay-ui/icons/*": ["../../packages/pay-ui/src/icons/*"],
+      "@stableflow/pay-ui/*": ["../../packages/pay-ui/src/*/index.ts"]
+    },
+    "noEmit": true
+  },
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"]
+}

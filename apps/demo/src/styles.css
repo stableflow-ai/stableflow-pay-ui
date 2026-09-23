@@ -1,0 +1,182 @@
+@import "tailwindcss";
+@source "../../../packages/pay-ui/src";
+@source "../../../packages/pay-widgets/src";
+
+:root {
+  color: #000;
+  background: #f7f7f7;
+  font-family: "Montserrat", "PingFang SC", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+}
+
+.demo-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.demo-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: #fff;
+  border-right: 1px solid #e3e3e3;
+}
+
+.demo-nav h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.demo-nav button {
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.demo-nav button[aria-current="page"] {
+  background: #000;
+  color: #fff;
+}
+
+.demo-nav-label {
+  margin: 12px 0 0;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #909090;
+}
+
+.demo-nav button.demo-nav-item {
+  padding-left: 18px;
+}
+
+.demo-home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 220px;
+  padding: 16px;
+  border: 1px solid #e3e3e3;
+  border-radius: 12px;
+  background: #fdfdfd;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.demo-home-card strong {
+  font-size: 15px;
+}
+
+.demo-home-card span {
+  font-size: 13px;
+  color: #606060;
+}
+
+.demo-main {
+  padding: 24px;
+}
+
+.demo-page h1 {
+  margin: 0 0 16px;
+  font-size: 22px;
+}
+
+.demo-stage {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 16px;
+  padding: 20px;
+  background: #fff;
+  border-radius: 16px;
+}
+
+.demo-theme {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.demo-theme input {
+  width: 220px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.demo-icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.demo-icons article {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #ebebeb;
+  border-radius: 12px;
+  color: #111;
+}
+
+.demo-icons svg,
+.demo-icons .sfp-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.demo-icons p {
+  margin: 0;
+  font-size: 11px;
+  text-align: center;
+}
+
+.demo-table {
+  width: 100%;
+}
+
+.demo-skeleton {
+  display: block;
+  width: 160px;
+  height: 16px;
+}
+
+.demo-stack {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 767px) {
+  .demo-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .demo-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+}

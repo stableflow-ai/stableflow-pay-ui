@@ -1,0 +1,21 @@
+import type { ReactNode } from "react";
+
+export type OverlayChromeProps = {
+  open: boolean;
+  onClose?: () => void;
+  title?: ReactNode;
+  ariaLabel?: string;
+  children?: ReactNode;
+  mask?: boolean;
+  maskClassName?: string;
+  closeOnMaskClick?: boolean;
+  cardClassName?: string;
+  panelClassName?: string;
+  titleClassName?: string;
+  closeClassName?: string;
+  contentClassName?: string;
+  closeIcon?: ReactNode;
+  headerAction?: ReactNode;
+  /** Sit in the wallet-portal z-index band, above ordinary dialog and drawer layers. */
+  elevated?: boolean;
+};

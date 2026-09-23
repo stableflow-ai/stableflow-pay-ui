@@ -1,0 +1,12 @@
+node_modules
+dist
+.turbo
+*.local
+.DS_Store
+coverage
+.pnpm-store/
+
+# Cursor (keep project skills)
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**

@@ -1,0 +1,15 @@
+{
+  "name": "stableflow-pay-ui",
+  "private": true,
+  "packageManager": "pnpm@10.19.0",
+  "scripts": {
+    "dev": "pnpm --filter @stableflow/pay-demo dev",
+    "build": "pnpm --filter @stableflow/pay-ui --filter @stableflow/pay-widgets build && pnpm --filter @stableflow/pay-demo build",
+    "check": "pnpm --filter @stableflow/pay-ui --filter @stableflow/pay-widgets --filter @stableflow/pay-demo exec tsc -p tsconfig.json --pretty false --noEmit",
+    "test": "node --test scripts/version.test.mjs && pnpm --filter @stableflow/pay-ui --filter @stableflow/pay-widgets test",
+    "release": "node scripts/release.mjs"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild"]
+  }
+}
