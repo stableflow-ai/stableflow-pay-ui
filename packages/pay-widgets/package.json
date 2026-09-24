@@ -1,6 +1,6 @@
 {
   "name": "@stableflow/pay-widgets",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Business widgets for Stableflow Pay. Data comes in through props and callbacks.",
   "keywords": [
     "stableflow",
