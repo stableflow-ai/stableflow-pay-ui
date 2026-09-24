@@ -46,4 +46,8 @@ The provider fetches `GET /v1/pay/config` itself and keeps balances in memory.
 
 Desktop default is `md:w-[474px]`, content height `h-[min(520px,62vh)] md:h-[min(555px,70vh)]`, gray search field, and a 72px network rail. Selected chips use `#06f`. Rows hover `#F6F6F6`.
 
+All Networks keeps non-EVM chains as single rows. EVM chains fold into one `EVM-based` card at the first EVM chain's position. The card is not a chain filter. Its second row shows Connect, or the shortened address, a copy button, and disconnect. `IconArrowDown` toggles the chain list and points up while the list is open. Each EVM chain inside the card stays selectable and does not repeat the wallet controls.
+
+A connected address shows `IconCopy` before disconnect. Copying calls `onCopyAddress`.
+
 Class slots, merged after the defaults: `className` (dialog card), `titleClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `railClassName`, `rowClassName`.

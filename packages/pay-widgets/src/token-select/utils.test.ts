@@ -3,6 +3,7 @@ import type { ChainKind } from "./types";
 import {
   chainBalanceUsd,
   chainHasBalance,
+  groupEvmChains,
   initialChainFilter,
   matchesChainFilter,
   parsePopularTokens,
@@ -272,6 +273,29 @@ describe("positiveBalanceTokens", () => {
     expect(positiveBalanceTokens([zero, funded], (item) => usd[item.assetId] ?? -1).map((item) => item.assetId)).toEqual([
       "usdt-eth",
     ]);
+  });
+});
+
+describe("groupEvmChains", () => {
+  it("places one EVM group at the first EVM chain and keeps other chains", () => {
+    const chains = [
+      chain("near", "Near"),
+      chain("eth", "Ethereum"),
+      chain("sol", "Solana"),
+      chain("base", "Base"),
+    ];
+    const entries = groupEvmChains(chains);
+    expect(entries.map((entry) => entry.kind)).toEqual(["chain", "evm", "chain"]);
+    expect(entries[0]).toMatchObject({ kind: "chain", chain: { blockchain: "near" } });
+    expect(entries[1]).toMatchObject({
+      kind: "evm",
+      chains: [{ blockchain: "eth" }, { blockchain: "base" }],
+    });
+    expect(entries[2]).toMatchObject({ kind: "chain", chain: { blockchain: "sol" } });
+  });
+
+  it("returns plain rows when there is no EVM chain", () => {
+    expect(groupEvmChains([chain("near"), chain("sol")]).map((entry) => entry.kind)).toEqual(["chain", "chain"]);
   });
 });
 

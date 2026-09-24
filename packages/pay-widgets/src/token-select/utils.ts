@@ -8,6 +8,29 @@ export type SidebarChain = {
   logo: string;
 };
 
+export type SidebarEntry =
+  | { kind: "chain"; chain: SidebarChain }
+  | { kind: "evm"; chains: SidebarChain[] };
+
+/** Fold every EVM chain into one group at the first EVM chain's position. */
+export function groupEvmChains(chains: readonly SidebarChain[]): SidebarEntry[] {
+  const evm = chains.filter((chain) => chain.chainKind === "evm");
+  if (evm.length === 0) return chains.map((chain) => ({ kind: "chain", chain }));
+  let placed = false;
+  const entries: SidebarEntry[] = [];
+  for (const chain of chains) {
+    if (chain.chainKind === "evm") {
+      if (!placed) {
+        entries.push({ kind: "evm", chains: evm });
+        placed = true;
+      }
+      continue;
+    }
+    entries.push({ kind: "chain", chain });
+  }
+  return entries;
+}
+
 /** USD value of a token balance using config `price`. Unknown balance is -1 (sort last). */
 export function tokenBalanceUsd(
   token: Pick<PayToken, "price">,

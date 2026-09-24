@@ -1,4 +1,5 @@
 import type { MouseEvent } from "react";
+import { IconCopy } from "@stableflow/pay-ui/icons/copy";
 import { IconLogout } from "@stableflow/pay-ui/icons/logout";
 import { usePayWidgets } from "./context";
 import { cx, fontSans, formatAddress } from "./format";
@@ -42,6 +43,18 @@ export function ChainWalletStatus({ kind }: { kind: ChainKind }) {
         className={cx("truncate border-0 bg-transparent p-0 text-xs text-[#606060] hover:text-black", fontSans)}
       >
         {formatAddress(address)}
+      </button>
+      <button
+        type="button"
+        aria-label="Copy address"
+        onClick={(event) => {
+          stop(event);
+          if (!onCopyAddress) return;
+          onCopyAddress(address);
+        }}
+        className="inline-flex shrink-0 cursor-pointer border-0 bg-transparent p-0 text-[#606060] hover:text-black"
+      >
+        <IconCopy className="size-3" />
       </button>
       {hideDisconnect ? null : (
         <button
