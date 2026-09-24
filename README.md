@@ -37,6 +37,8 @@ pnpm test
 pnpm release  # publish; do not hand-edit versions
 ```
 
+The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.ai/). A push to the connected GitHub repository publishes `apps/demo/dist` through the root [wrangler.jsonc](wrangler.jsonc).
+
 ## Docs
 
 - [doc/conventions.md](doc/conventions.md) — coding rules

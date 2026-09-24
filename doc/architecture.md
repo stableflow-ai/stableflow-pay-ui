@@ -22,6 +22,8 @@ Importing `@stableflow/pay-ui/button` loads Button and the icons Button renders.
 
 `pnpm dev` starts `apps/demo`. Vite aliases package specifiers to TypeScript source, so component edits show up without a package build.
 
+The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.ai/). A push to the connected GitHub repository publishes `apps/demo/dist` through the root `wrangler.jsonc`.
+
 ## Data boundary
 
 Widgets receive wallet actions, balance readers, and config callbacks through props. They do not read application stores. Token select loads `GET /v1/pay/config` itself and keeps balances in memory.
