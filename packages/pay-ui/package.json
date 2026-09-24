@@ -1,6 +1,6 @@
 {
   "name": "@stableflow/pay-ui",
-  "version": "0.0.1-beta-fdb0b346d3-20260924",
+  "version": "0.0.0",
   "description": "Presentational React components and icons for Stableflow Pay.",
   "keywords": [
     "stableflow",
