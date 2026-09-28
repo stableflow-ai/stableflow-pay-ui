@@ -1,6 +1,6 @@
 # @stableflow/pay-widgets
 
-Business widgets for Stableflow Pay. Wallet actions, balance readers, and config callbacks come in through props. The package does not read application stores.
+Business widgets for StableFlow Pay. Wallet actions, balance readers, and config callbacks come in through props. The package does not read application stores.
 
 Peer dependency: React 19. Install `@stableflow/pay-ui` as well.
 

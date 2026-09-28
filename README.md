@@ -1,6 +1,6 @@
-# Stableflow Pay UI
+# StableFlow Pay UI
 
-Presentational components and business widgets for Stableflow Pay. `@stableflow/pay-ui` has no business types, HTTP clients, wallets, or stores. `@stableflow/pay-widgets` receives data through props, callbacks, or render props.
+Presentational components and business widgets for StableFlow Pay. `@stableflow/pay-ui` has no business types, HTTP clients, wallets, or stores. `@stableflow/pay-widgets` receives data through props, callbacks, or render props.
 
 ## Packages
 

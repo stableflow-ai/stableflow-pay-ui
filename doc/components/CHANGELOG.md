@@ -12,5 +12,5 @@
 ## 0.0.0
 
 - Initial extraction of Pay UI components and icons.
-- Styles use `--sfp-*` variables. Defaults match the Stableflow Pay v2/v3 look.
+- Styles use `--sfp-*` variables. Defaults match the StableFlow Pay v2/v3 look.
 - Public imports are subpaths such as `@stableflow/pay-ui/button` and `@stableflow/pay-ui/icons/close`.

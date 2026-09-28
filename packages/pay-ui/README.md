@@ -1,6 +1,6 @@
 # @stableflow/pay-ui
 
-Presentational React components and inline SVG icons for Stableflow Pay. The package has no business types, HTTP clients, wallets, or stores.
+Presentational React components and inline SVG icons for StableFlow Pay. The package has no business types, HTTP clients, wallets, or stores.
 
 Import each component by its subpath. There is no root barrel.
 

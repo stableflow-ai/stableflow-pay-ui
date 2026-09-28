@@ -49,7 +49,7 @@ const COMPONENT_PAGES = [...UI_PAGES, ...WIDGET_PAGES];
 
 function HomePage(props: { onOpen: (id: PageId) => void }) {
   return (
-    <Page title="Stableflow Pay UI">
+    <Page title="StableFlow Pay UI">
       <button type="button" className="demo-home-card" onClick={() => props.onOpen(UI_PAGES[0][0])}>
         <strong>UI</strong>
         <span>Buttons, dialogs, inputs, and other primitives.</span>
