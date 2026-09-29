@@ -16,6 +16,7 @@ import { IconCode } from "@stableflow/pay-ui/icons/code";
 import { IconCopy } from "@stableflow/pay-ui/icons/copy";
 import { IconDatabase } from "@stableflow/pay-ui/icons/database";
 import { IconDelete } from "@stableflow/pay-ui/icons/delete";
+import { IconDown } from "@stableflow/pay-ui/icons/down";
 import { IconDownload } from "@stableflow/pay-ui/icons/download";
 import { IconDuration, IconDuration2 } from "@stableflow/pay-ui/icons/duration";
 import { IconEmail } from "@stableflow/pay-ui/icons/email";
@@ -46,10 +47,10 @@ import { IconOtcTreasury } from "@stableflow/pay-ui/icons/otc-treasury";
 import { IconOutsourcing } from "@stableflow/pay-ui/icons/outsourcing";
 import { IconOverview } from "@stableflow/pay-ui/icons/overview";
 import { IconPay } from "@stableflow/pay-ui/icons/pay";
-import { IconPayment } from "@stableflow/pay-ui/icons/payment";
 import { IconPayroll } from "@stableflow/pay-ui/icons/payroll";
 import { IconPen } from "@stableflow/pay-ui/icons/pen";
 import { IconPlus } from "@stableflow/pay-ui/icons/plus";
+import { IconPrivate } from "@stableflow/pay-ui/icons/private";
 import { IconProcurement } from "@stableflow/pay-ui/icons/procurement";
 import { IconQuestion } from "@stableflow/pay-ui/icons/question";
 import { IconReceipt } from "@stableflow/pay-ui/icons/receipt";
@@ -88,6 +89,7 @@ const ICONS: { file: string; name: string; Icon: ComponentType<IconProps> }[] = 
   { file: "copy", name: "IconCopy", Icon: IconCopy },
   { file: "database", name: "IconDatabase", Icon: IconDatabase },
   { file: "delete", name: "IconDelete", Icon: IconDelete },
+  { file: "down", name: "IconDown", Icon: IconDown },
   { file: "download", name: "IconDownload", Icon: IconDownload },
   { file: "duration", name: "IconDuration", Icon: IconDuration },
   { file: "duration", name: "IconDuration2", Icon: IconDuration2 },
@@ -122,10 +124,10 @@ const ICONS: { file: string; name: string; Icon: ComponentType<IconProps> }[] = 
   { file: "outsourcing", name: "IconOutsourcing", Icon: IconOutsourcing },
   { file: "overview", name: "IconOverview", Icon: IconOverview },
   { file: "pay", name: "IconPay", Icon: IconPay },
-  { file: "payment", name: "IconPayment", Icon: IconPayment },
   { file: "payroll", name: "IconPayroll", Icon: IconPayroll },
   { file: "pen", name: "IconPen", Icon: IconPen },
   { file: "plus", name: "IconPlus", Icon: IconPlus },
+  { file: "private", name: "IconPrivate", Icon: IconPrivate },
   { file: "procurement", name: "IconProcurement", Icon: IconProcurement },
   { file: "question", name: "IconQuestion", Icon: IconQuestion },
   { file: "receipt", name: "IconReceipt", Icon: IconReceipt },

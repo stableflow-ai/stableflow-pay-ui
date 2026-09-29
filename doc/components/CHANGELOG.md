@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Dropped duplicate icon `IconPayment` (keep `IconUp`). Added `IconDown` (`icons/down`) and `IconPrivate` (`icons/private`).
 - Added `IconAlertCircle` (`icons/alert-circle`), `IconMember` (`icons/member`), and `IconDuration2` (second export of `icons/duration`).
 - Replaced component CSS and `--sfp-*` tokens with literal Tailwind classes. Hosts scan the package with `@source`. Pass `className` (and existing slot props) to override.
 - Removed `@stableflow/pay-ui/theme.css`.
