@@ -1,7 +1,7 @@
-import { SearchInput } from "@stableflow/pay-ui/search-input";
+import { IconChevron } from "@stableflow/pay-ui/icons/chevron";
 import { Skeleton } from "@stableflow/pay-ui/skeleton";
 import { ChainWalletStatus } from "./chain-wallet-status";
-import { cx, fontSans, formatDisplayAmount } from "./format";
+import { cx, fontSans, formatDisplayAmount, thinScrollbar } from "./format";
 import type { ChainKind, PayToken } from "./types";
 import { tokenBalanceUsd } from "./utils";
 
@@ -13,20 +13,21 @@ export type TokenListSection = {
   badgeAssetId?: string | null;
 };
 
+export type TokenPaneHeader =
+  | { kind: "back"; title: string; onBack: () => void; walletKind?: ChainKind | null }
+  | { kind: "chain"; title: string; walletKind?: ChainKind | null };
+
 export type TokenPaneProps = {
   sections: TokenListSection[];
   selectedAssetId?: string | null;
   loading: boolean;
   showBalances?: boolean;
   showWalletStatus?: boolean;
+  header?: TokenPaneHeader | null;
   getBalance: (token: PayToken) => string | null | undefined;
   isBalanceLoading: (token: PayToken) => boolean;
   onSelectToken: (token: PayToken) => void;
   isTokenDisabled?: (token: PayToken) => boolean;
-  search?: string;
-  onSearchChange?: (value: string) => void;
-  showSearch?: boolean;
-  searchClassName?: string;
   rowClassName?: string;
 };
 
@@ -37,63 +38,75 @@ export function TokenPane(props: TokenPaneProps) {
     loading,
     showBalances = false,
     showWalletStatus = true,
+    header = null,
     getBalance,
     isBalanceLoading,
     onSelectToken,
     isTokenDisabled,
-    search = "",
-    onSearchChange,
-    showSearch = false,
-    searchClassName,
     rowClassName,
   } = props;
   const visibleSections = sections.filter((section) => section.title || section.tokens.length > 0);
   const hasTokens = sections.some((section) => section.tokens.length > 0);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      {showSearch && onSearchChange ? (
-        <SearchInput
-          value={search}
-          onChange={onSearchChange}
-          placeholder="search or paste address"
-          className="mb-3 shrink-0"
-          inputClassName={cx(
-            "h-[36px] rounded-[18px] border-[#e3e3e3] bg-[#f6f6f6] text-sm placeholder:text-black/30",
-            searchClassName,
-          )}
-        />
-      ) : null}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-        {visibleSections.map((section) => (
-          <section key={section.id} className="mb-2">
-            {section.title ? (
-              <div className="mb-1 flex items-center justify-between gap-2 px-2 md:px-3.5">
-                <p className={cx("min-w-0 truncate text-sm font-medium text-[#aaa]", fontSans)}>{section.title}</p>
-                {showWalletStatus && section.walletKind ? <ChainWalletStatus kind={section.walletKind} /> : null}
-              </div>
-            ) : null}
-            {section.tokens.map((token) => (
-              <TokenRow
-                key={`${section.id}-${token.assetId}`}
-                token={token}
-                selected={token.assetId === selectedAssetId}
-                recent={token.assetId === section.badgeAssetId}
-                showBalances={showBalances}
-                formatted={showBalances ? getBalance(token) : null}
-                loadingBalance={showBalances && isBalanceLoading(token)}
-                disabled={Boolean(isTokenDisabled?.(token))}
-                onSelect={() => onSelectToken(token)}
-                className={rowClassName}
-              />
-            ))}
-          </section>
-        ))}
-        {loading && !hasTokens ? <TokenListSkeleton /> : null}
-        {!loading && !hasTokens ? (
-          <p className={cx("px-1 py-4 text-[13px] text-[#606060]", fontSans)}>No tokens found</p>
-        ) : null}
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <div className={cx("min-h-0 flex-1 overflow-y-auto", thinScrollbar)}>
+        <div className="px-2.5 pt-[17px] pb-3">
+          {header ? (
+            <ChainListHeader header={header} showWalletStatus={showWalletStatus} />
+          ) : null}
+          {visibleSections.map((section) => (
+            <section key={section.id} className="mb-2">
+              {section.title ? (
+                <div className="mb-1 flex items-center justify-between gap-2 px-3.5">
+                  <p className={cx("min-w-0 truncate text-sm font-medium text-[#aaa]", fontSans)}>{section.title}</p>
+                  {showWalletStatus && section.walletKind ? <ChainWalletStatus kind={section.walletKind} /> : null}
+                </div>
+              ) : null}
+              {section.tokens.map((token) => (
+                <TokenRow
+                  key={`${section.id}-${token.assetId}`}
+                  token={token}
+                  selected={token.assetId === selectedAssetId}
+                  recent={token.assetId === section.badgeAssetId}
+                  showBalances={showBalances}
+                  formatted={showBalances ? getBalance(token) : null}
+                  loadingBalance={showBalances && isBalanceLoading(token)}
+                  disabled={Boolean(isTokenDisabled?.(token))}
+                  onSelect={() => onSelectToken(token)}
+                  className={rowClassName}
+                />
+              ))}
+            </section>
+          ))}
+          {loading && !hasTokens ? <TokenListSkeleton /> : null}
+          {!loading && !hasTokens ? (
+            <p className={cx("px-3.5 py-4 text-[13px] text-[#606060]", fontSans)}>No tokens found</p>
+          ) : null}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function ChainListHeader(props: { header: TokenPaneHeader; showWalletStatus: boolean }) {
+  const { header, showWalletStatus } = props;
+  const walletKind = header.walletKind;
+  return (
+    <div className="mb-1 flex items-center justify-between gap-3 px-3.5">
+      {header.kind === "back" ? (
+        <button
+          type="button"
+          onClick={header.onBack}
+          className={cx("flex min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-sm font-medium text-[#aaa]", fontSans)}
+        >
+          <IconChevron className="rotate-180 text-[#aaa]" />
+          <span className="truncate">{header.title}</span>
+        </button>
+      ) : (
+        <p className={cx("min-w-0 truncate text-sm font-medium text-[#aaa]", fontSans)}>{header.title}</p>
+      )}
+      {showWalletStatus && walletKind ? <ChainWalletStatus kind={walletKind} /> : null}
     </div>
   );
 }
@@ -102,7 +115,7 @@ function TokenListSkeleton() {
   return (
     <div aria-hidden>
       {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="flex items-center gap-2.5 px-2 py-3 md:px-3.5">
+        <div key={index} className="flex h-[66px] items-center gap-2.5 px-3.5">
           <Skeleton className="size-8 shrink-0 rounded-full" />
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Skeleton className="h-3.5 w-24" />
@@ -114,7 +127,7 @@ function TokenListSkeleton() {
   );
 }
 
-function TokenRow(props: {
+export function TokenRow(props: {
   token: PayToken;
   selected: boolean;
   recent: boolean;
@@ -134,15 +147,15 @@ function TokenRow(props: {
       disabled={disabled}
       onClick={onSelect}
       className={cx(
-        "flex w-full items-center justify-between gap-2 rounded-[12px] border-0 bg-transparent px-2 py-3 text-left hover:bg-[#F6F6F6] md:px-3.5",
-        selected && "bg-[#F6F6F6]",
+        "flex h-[66px] w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border-0 bg-transparent px-3.5 text-left hover:bg-[#f6f6f6]",
+        selected && "bg-[#f6f6f6]",
         disabled && "cursor-not-allowed opacity-40 hover:bg-transparent",
         className,
       )}
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="relative size-8 shrink-0">
-          <img src={token.logo} alt="" className="size-8 rounded-full object-cover" />
+          <img src={token.logo} alt="" className="size-8 rounded-[12px] object-cover" />
           <img
             src={token.chain.logo}
             alt=""
@@ -180,7 +193,7 @@ function TokenRow(props: {
               ) : null}
             </>
           ) : (
-            <span className={cx("text-sm text-[#606060]", fontSans)}>—</span>
+            <span className={cx("text-sm font-medium text-black", fontSans)}>-</span>
           )}
         </span>
       ) : null}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { MAX_RECENT_ASSETS, MAX_RECENT_BLOCKCHAINS } from "./config";
 import { mapPayConfigSource, normalizePayConfig } from "./pay-config";
+import { chainsFromTokens } from "./utils";
 import { migrateTokenSelectPrefs, rememberRecentAsset, rememberRecentBlockchain } from "./prefs";
 
 describe("rememberRecentAsset", () => {
@@ -77,9 +78,9 @@ describe("normalizePayConfig", () => {
         { symbol: "NEAR", network: "near", decimals: 24, contract_address: "wrap.near", price: "5", support_payment: true, support_receive: true },
       ],
     });
-    const normalized = normalizePayConfig(source, {});
-    expect(normalized.chains.map((chain) => chain.chainKind)).toEqual(["evm", "near"]);
-    expect(normalized.tokens.map((token) => token.assetId)).toEqual([
+    const normalized = normalizePayConfig(source, { chainKinds: { eth: "evm", near: "near" } });
+    expect(chainsFromTokens(normalized).map((chain) => chain.chainKind)).toEqual(["evm", "near"]);
+    expect(normalized.map((token) => token.assetId)).toEqual([
       "eth:USDT:0xabc",
       "near:NEAR:wrap.near",
     ]);

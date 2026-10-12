@@ -12,6 +12,7 @@ export type OverlayChromeProps = {
   cardClassName?: string;
   panelClassName?: string;
   titleClassName?: string;
+  headerClassName?: string;
   closeClassName?: string;
   contentClassName?: string;
   closeIcon?: ReactNode;

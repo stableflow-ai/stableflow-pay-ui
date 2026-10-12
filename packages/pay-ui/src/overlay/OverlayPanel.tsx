@@ -8,6 +8,7 @@ export type OverlayPanelProps = {
   title?: ReactNode;
   ariaLabel?: string;
   titleClassName?: string;
+  headerClassName?: string;
   closeClassName?: string;
   closeIcon?: ReactNode;
   headerAction?: ReactNode;
@@ -24,6 +25,7 @@ export function OverlayPanel(props: OverlayPanelProps) {
     title,
     ariaLabel,
     titleClassName,
+    headerClassName,
     closeClassName,
     closeIcon,
     headerAction,
@@ -94,7 +96,7 @@ export function OverlayPanel(props: OverlayPanelProps) {
       style={style}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="relative flex shrink-0 items-center gap-3">
+      <div className={cn("relative flex shrink-0 items-center gap-3", headerClassName)}>
         <h2
           id={hasTitle ? titleId : undefined}
           className={cn(

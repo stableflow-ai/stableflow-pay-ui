@@ -31,10 +31,6 @@ function logoPath(path: string): string {
   return `${LOGO_HOST}${normalized}`;
 }
 
-export function evmTypeLogoUrl(): string {
-  return logoPath("/stableflow/networks/type-evm.svg");
-}
-
 export function chainLogoUrl(blockchainOrNetwork: string): string {
   const key = String(blockchainOrNetwork || "").toLowerCase();
   const file = CHAIN_LOGO_ALIAS[key] || key.replace(/\s+/g, "");

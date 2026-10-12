@@ -1,59 +1,15 @@
-import { useCallback, useEffect, useSyncExternalStore } from "react";
-import { CONFIG_STALE_MS, DEFAULT_API_HOST, DEFAULT_CHAIN_KINDS } from "./config";
+import { DEFAULT_CHAIN_KINDS } from "./config";
 import { chainLogoUrl, tokenLogoUrl } from "./logos";
 import type { ChainKind, PayChain, PayConfigSource, PayConfigSourceChain, PayConfigSourceToken, PayToken } from "./types";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const WRAP_NEAR_CONTRACT = "wrap.near";
 
-export type PayConfigStatus = "idle" | "loading" | "success" | "error";
-
-export type PayConfigSnapshot = {
-  apiHost: string;
-  chains: PayChain[];
-  tokens: PayToken[];
-  source: PayConfigSource | null;
-  status: PayConfigStatus;
-  error: string | null;
-  fetchedAt: number | null;
-};
-
 type ChainKindMap = Partial<Record<string, ChainKind>>;
 
-const listeners = new Set<() => void>();
-let chainKindOverrides: ChainKindMap = {};
-let snapshot: PayConfigSnapshot = {
-  apiHost: DEFAULT_API_HOST,
-  chains: [],
-  tokens: [],
-  source: null,
-  status: "idle",
-  error: null,
-  fetchedAt: null,
+export type NormalizePayConfigOptions = {
+  chainKinds?: ChainKindMap;
 };
-let inflight: Promise<void> | null = null;
-
-function emit(next: PayConfigSnapshot) {
-  snapshot = next;
-  for (const listener of listeners) listener();
-}
-
-function subscribe(listener: () => void) {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
-}
-
-export function getPayConfigSnapshot(): PayConfigSnapshot {
-  return snapshot;
-}
-
-export function setChainKindOverrides(overrides: ChainKindMap | null | undefined) {
-  chainKindOverrides = overrides ?? {};
-  if (snapshot.source) {
-    const normalized = normalizePayConfig(snapshot.source, chainKindOverrides);
-    emit({ ...snapshot, chains: normalized.chains, tokens: normalized.tokens });
-  }
-}
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
@@ -123,7 +79,7 @@ export function mapPayConfigSource(raw: unknown): PayConfigSource {
   return { chains, tokens };
 }
 
-export function chainKindFor(network: string, overrides: ChainKindMap = chainKindOverrides): ChainKind | null {
+export function chainKindFor(network: string, overrides: ChainKindMap = {}): ChainKind | null {
   const key = network.trim().toLowerCase();
   if (!key) return null;
   return overrides[key] ?? DEFAULT_CHAIN_KINDS[key as keyof typeof DEFAULT_CHAIN_KINDS] ?? null;
@@ -149,10 +105,8 @@ function isNativeAddress(contractAddress: string | null): boolean {
   return lower === "native" || lower === ZERO_ADDRESS;
 }
 
-export function normalizePayConfig(source: PayConfigSource, overrides: ChainKindMap = chainKindOverrides): {
-  chains: PayChain[];
-  tokens: PayToken[];
-} {
+export function normalizePayConfig(source: PayConfigSource, options?: NormalizePayConfigOptions): PayToken[] {
+  const overrides = options?.chainKinds ?? {};
   const chains: PayChain[] = [];
   for (const chain of source.chains) {
     const chainKind = chainKindFor(chain.network, overrides);
@@ -192,81 +146,6 @@ export function normalizePayConfig(source: PayConfigSource, overrides: ChainKind
   const hasNearWrap = tokens.some((token) => (
     token.symbol === "NEAR" && token.blockchain === "near" && token.contractAddress?.toLowerCase() === WRAP_NEAR_CONTRACT
   ));
-  const visible = hasNearWrap
-    ? tokens.filter((token) => !(token.symbol === "NEAR" && token.blockchain === "near" && isNativeAddress(token.contractAddress)))
-    : tokens;
-  return { chains, tokens: visible };
-}
-
-export function configUrl(apiHost: string): string {
-  return `${apiHost.replace(/\/$/, "")}/v1/pay/config`;
-}
-
-async function load(apiHost: string, force: boolean) {
-  const fresh = snapshot.apiHost === apiHost
-    && snapshot.status === "success"
-    && snapshot.fetchedAt != null
-    && Date.now() - snapshot.fetchedAt < CONFIG_STALE_MS;
-  if (!force && fresh) return;
-  if (inflight && !force) return inflight;
-
-  emit({ ...snapshot, apiHost, status: snapshot.tokens.length > 0 ? snapshot.status : "loading", error: null });
-  const run = (async () => {
-    try {
-      const response = await fetch(configUrl(apiHost));
-      if (!response.ok) throw new Error(`Config request failed (${response.status})`);
-      const source = mapPayConfigSource(await response.json());
-      const normalized = normalizePayConfig(source, chainKindOverrides);
-      emit({
-        apiHost,
-        source,
-        chains: normalized.chains,
-        tokens: normalized.tokens,
-        status: "success",
-        error: null,
-        fetchedAt: Date.now(),
-      });
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Failed to load config";
-      emit({
-        ...snapshot,
-        apiHost,
-        status: snapshot.source ? "success" : "error",
-        error: message,
-      });
-    } finally {
-      inflight = null;
-    }
-  })();
-  inflight = run;
-  return run;
-}
-
-export function refetchPayConfig(apiHost = snapshot.apiHost) {
-  return load(apiHost, true);
-}
-
-export function usePayConfigSnapshot(): PayConfigSnapshot {
-  return useSyncExternalStore(subscribe, getPayConfigSnapshot, getPayConfigSnapshot);
-}
-
-export function usePayConfig(options?: { apiHost?: string }) {
-  const apiHost = options?.apiHost?.trim() || DEFAULT_API_HOST;
-  const current = useSyncExternalStore(subscribe, getPayConfigSnapshot, getPayConfigSnapshot);
-  const refetch = useCallback(() => {
-    void refetchPayConfig(apiHost);
-  }, [apiHost]);
-
-  useEffect(() => {
-    void load(apiHost, false);
-  }, [apiHost]);
-
-  return {
-    chains: current.apiHost === apiHost ? current.chains : [],
-    tokens: current.apiHost === apiHost ? current.tokens : [],
-    source: current.apiHost === apiHost ? current.source : null,
-    status: current.apiHost === apiHost ? current.status : "loading" as const,
-    error: current.apiHost === apiHost ? current.error : null,
-    refetch,
-  };
+  if (!hasNearWrap) return tokens;
+  return tokens.filter((token) => !(token.symbol === "NEAR" && token.blockchain === "near" && isNativeAddress(token.contractAddress)));
 }

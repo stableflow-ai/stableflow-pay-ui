@@ -1,6 +1,6 @@
 # token-select
 
-Business widget. It loads pay config, reads balances through a caller callback, and opens a token picker. It is not a presentational component.
+Business widget for picking a pay token. The host passes a flat token list. The widget does not fetch config.
 
 Import `@stableflow/pay-widgets/token-select`.
 
@@ -8,6 +8,8 @@ Import `@stableflow/pay-widgets/token-select`.
 import {
   PayWidgetsProvider,
   TokenSelectDialog,
+  mapPayConfigSource,
+  normalizePayConfig,
 } from "@stableflow/pay-widgets/token-select";
 ```
 
@@ -15,19 +17,62 @@ Render `TokenSelectDialog` inside `PayWidgetsProvider`. The dialog throws if tha
 
 ## Provider
 
-`PayWidgetsProvider` is the data boundary. The widget does not read application stores.
+`PayWidgetsProvider` is the data boundary. The widget does not read application stores and does not send HTTP requests.
 
 | Prop | Role |
 | --- | --- |
-| `wallet` | Accounts plus `connect` and `disconnect`, keyed by `ChainKind` (`evm`, `near`, `solana`, `tron`, `zec`). |
-| `readBalances` | Called with an owner, chain, and token batch. Returns formatted balances or an error per `assetId`. |
+| `tokens` | Flat `PayToken[]`. Each token carries its own `chain`. Chains with no token are hidden. |
+| `loading` | Shows the empty-list skeleton while the host is still loading tokens. |
+| `wallet` | Accounts plus `connect` and `disconnect`. `accounts` is keyed by any chain-kind string. |
+| `readBalances` | Async mode. Called with an owner, chain, and token batch. The widget polls while the dialog is open. |
+| `getBalance`, `isBalanceLoading` | Sync mode. The widget reads balances from these callbacks and does not poll. `getBalance` should change when balances change so the dialog re-renders. |
 | `popularTokens` | `{ blockchain, symbol }` refs for the popular section. |
-| `apiHost` | Pay config host. Defaults to `https://api.stableflow.ai`. |
-| `onConfig` | Receives the raw config payload after a successful load. |
+| `stableSymbols` | Stablecoin order. Defaults to `USDT`, then `USDC`. |
+| `chainKindLabels` | Display names for chain kinds. Built-in labels are used when a kind is missing. |
 | `onCopyAddress` | Called when the user copies a connected address. |
-| `chainKinds` | Overrides the built-in network code to `ChainKind` map. |
 
-The provider fetches `GET /v1/pay/config` itself and keeps balances in memory.
+Pass one balance mode. If both `readBalances` and `getBalance` are set, async `readBalances` is used. If neither is set, development builds log a warning.
+
+Same `blockchain` should use the same `chain` object on every token. `chainsFromTokens(tokens)` keeps the first object when they differ.
+
+```tsx
+const tokens = useMemo(
+  () => (data ? normalizePayConfig(mapPayConfigSource(data), { chainKinds }) : []),
+  [data, chainKinds],
+);
+
+<PayWidgetsProvider tokens={tokens} loading={isPending} wallet={wallet} readBalances={readBalances}>
+  <TokenSelectDialog open={open} onClose={onClose} onSelect={onSelect} />
+</PayWidgetsProvider>
+```
+
+`normalizePayConfig` returns `PayToken[]`. `chainKinds` overrides the built-in network code map for that call only. `tokenAssetId(network, symbol, contractAddress)` builds the id used by normalized tokens.
+
+## Views
+
+`role="payer"` with a connected wallet opens on the wallet view (Recently Used, Your Tokens, Popular). A payer with no wallet opens on All Networks. `role="receiver"` opens on All. `lockChainKind` opens on that kind's chain, using the same recent-chain rule as before.
+
+| View | Left rail | Right pane |
+| --- | --- | --- |
+| `wallet` | Wallet, funded connected chains, All Networks | Recently Used, Your Tokens, Popular |
+| `all` | All, then every chain by name | Popular, then every token |
+| `rail-chain` | The chain chip | Chain name and wallet status. No back arrow and no slide. |
+| `networks` | All Networks selected | Flat chain list, alphabetical, with a chevron |
+| `network-chain` | All Networks stays selected | Back arrow, chain name, wallet status |
+
+Payer rail chains are only chains whose kind is connected. EVM chains appear only when they have a balance. They sort by USD, then name. Receiver chains sort by name and do not include All Networks.
+
+Connecting a wallet leaves the current view in place and adds the wallet chip plus that kind's chains. If the current rail chip disappears, a remaining wallet returns to `wallet`; otherwise the view returns to `networks`.
+
+Search replaces the right pane and matches tokens on every chain, not the selected one. Clearing search restores the view.
+
+Only `networks` and `network-chain` slide. Forward: the chain list moves left and fades, the token list enters from the right. Back is the reverse. Reduced motion swaps the panes immediately. Returning to All Networks restores the list scroll position.
+
+## Sorting
+
+Stablecoins sort before gas tokens, then other symbols. Gas is a native asset (empty address, `native`, or the zero address) or `NEAR` on Near. Within a connected payer chain, tokens with a balance sort by USD, then balances still loading, then the priority above. Receiver lists use that priority without balances. Popular stays on the payer wallet view and on receiver All and receiver chain views.
+
+Search folds every EVM chain into one EVM-based group. Other chains stay in their own groups. Tokens inside a group follow the chain-list order. Payer groups sort by the matched tokens' USD, then group name. Receiver groups sort by group name.
 
 ## Dialog
 
@@ -39,15 +84,13 @@ The provider fetches `GET /v1/pay/config` itself and keeps balances in memory.
 | `title` | Defaults to `Select Token`. |
 | `selectedAssetId` | Highlights the current row. |
 | `balanceOwners` | Extra owner addresses merged over the connected wallet. Used when `role` is `payer`. |
-| `allowedBlockchains` | Limits the rail. `null` shows every chain from config. |
+| `allowedBlockchains` | Limits which tokens are shown. `null` shows every token from `tokens`. |
 | `lockChainKind` | Locks the picker to one chain kind. |
 | `excludeNative` | Hides native assets. |
 | `disabledBlockchains`, `disabledReason` | Disables those chains and shows the reason. |
 
-Desktop default is `md:w-[474px]`, content height `h-[min(520px,62vh)] md:h-[min(555px,70vh)]`, gray search field, and a 72px network rail. Selected chips use `#06f`. Rows hover `#F6F6F6`.
-
-All Networks keeps non-EVM chains as single rows. EVM chains fold into one `EVM-based` card at the first EVM chain's position. The card is not a chain filter. Its second row shows Connect, or the shortened address, a copy button, and disconnect. `IconArrowDown` toggles the chain list and points up while the list is open. Each EVM chain inside the card stays selectable and does not repeat the wallet controls.
+Desktop card is 474px wide, 12px radius, `#fdfdfd` with a `#e0e0e0` border. The header is 56px with a bottom border. Search stays in the header on every view; below 768px it sits on its own row under the header. The rail is 76px. Rows are 66px and hover `#f6f6f6`.
 
 A connected address shows `IconCopy` before disconnect. Copying calls `onCopyAddress`.
 
-Class slots, merged after the defaults: `className` (dialog card), `titleClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `railClassName`, `rowClassName`.
+Class slots, merged after the defaults: `className` (dialog card), `titleClassName`, `headerClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `railClassName`, `rowClassName`.

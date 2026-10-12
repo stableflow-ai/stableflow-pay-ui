@@ -22,6 +22,7 @@ export function Dialog(props: DialogProps) {
     closeOnMaskClick = true,
     cardClassName,
     titleClassName,
+    headerClassName,
     closeClassName,
     closeIcon,
     headerAction,
@@ -65,6 +66,7 @@ export function Dialog(props: DialogProps) {
             title={title}
             ariaLabel={ariaLabel}
             titleClassName={titleClassName}
+            headerClassName={headerClassName}
             closeClassName={closeClassName}
             closeIcon={closeIcon}
             headerAction={headerAction}

@@ -24,17 +24,21 @@ The host must use Tailwind v4 and scan both packages. Without the scan, the widg
 
 Import `@stableflow/pay-widgets/token-select`. Render `TokenSelectDialog` inside `PayWidgetsProvider`.
 
-`PayWidgetsProvider` requires `wallet` and `readBalances`. It loads pay config from `https://api.stableflow.ai` unless `apiHost` is set.
+`PayWidgetsProvider` requires `tokens` and `wallet`, plus either `readBalances` or `getBalance`. The host normalizes pay config and passes the flat token list in. The widget does not fetch.
 
 ```tsx
 import {
   PayWidgetsProvider,
   TokenSelectDialog,
+  mapPayConfigSource,
+  normalizePayConfig,
 } from "@stableflow/pay-widgets/token-select";
+
+const tokens = normalizePayConfig(mapPayConfigSource(payload));
 
 export function Picker() {
   return (
-    <PayWidgetsProvider wallet={wallet} readBalances={readBalances}>
+    <PayWidgetsProvider tokens={tokens} wallet={wallet} readBalances={readBalances}>
       <TokenSelectDialog open={open} onClose={onClose} onSelect={onSelect} />
     </PayWidgetsProvider>
   );

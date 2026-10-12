@@ -60,7 +60,13 @@ export function DialogPage() {
   return (
     <Page title="Dialog">
       <Button onClick={() => setOpen(true)}>Open dialog</Button>
-      <Dialog open={open} onClose={() => setOpen(false)} title="Dialog" cardClassName="md:w-[420px]">
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Dialog"
+        cardClassName="md:w-[420px]"
+        headerClassName="border-b border-[#e3e3e3]"
+      >
         Dialog body
       </Dialog>
     </Page>

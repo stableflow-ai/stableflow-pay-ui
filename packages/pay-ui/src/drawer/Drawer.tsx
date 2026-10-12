@@ -23,6 +23,7 @@ export function Drawer(props: DrawerProps) {
     cardClassName,
     panelClassName,
     titleClassName,
+    headerClassName,
     closeClassName,
     closeIcon,
     headerAction,
@@ -58,6 +59,7 @@ export function Drawer(props: DrawerProps) {
           title={title}
           ariaLabel={ariaLabel}
           titleClassName={titleClassName}
+          headerClassName={headerClassName}
           closeClassName={closeClassName}
           closeIcon={closeIcon}
           headerAction={headerAction}

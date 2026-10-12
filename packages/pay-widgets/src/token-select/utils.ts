@@ -1,5 +1,7 @@
-import { ALL_CHAIN_FILTER, DISCONNECTED_CHAIN_ORDER } from "./config";
-import type { ChainKind, PayToken, PopularTokenRef } from "./types";
+import { ALL_CHAIN_FILTER, DEFAULT_STABLE_SYMBOLS } from "./config";
+import type { ChainKind, PayChain, PayToken, PopularTokenRef } from "./types";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export type SidebarChain = {
   blockchain: string;
@@ -8,27 +10,13 @@ export type SidebarChain = {
   logo: string;
 };
 
-export type SidebarEntry =
-  | { kind: "chain"; chain: SidebarChain }
-  | { kind: "evm"; chains: SidebarChain[] };
-
-/** Fold every EVM chain into one group at the first EVM chain's position. */
-export function groupEvmChains(chains: readonly SidebarChain[]): SidebarEntry[] {
-  const evm = chains.filter((chain) => chain.chainKind === "evm");
-  if (evm.length === 0) return chains.map((chain) => ({ kind: "chain", chain }));
-  let placed = false;
-  const entries: SidebarEntry[] = [];
-  for (const chain of chains) {
-    if (chain.chainKind === "evm") {
-      if (!placed) {
-        entries.push({ kind: "evm", chains: evm });
-        placed = true;
-      }
-      continue;
-    }
-    entries.push({ kind: "chain", chain });
+export function chainsFromTokens(tokens: readonly { blockchain: string; chain: PayChain }[]): PayChain[] {
+  const byCode = new Map<string, PayChain>();
+  for (const token of tokens) {
+    const code = token.chain.blockchain || token.blockchain;
+    if (!byCode.has(code)) byCode.set(code, token.chain);
   }
-  return entries;
+  return Array.from(byCode.values());
 }
 
 /** USD value of a token balance using config `price`. Unknown balance is -1 (sort last). */
@@ -44,7 +32,7 @@ export function tokenBalanceUsd(
 }
 
 export function tokenMatchesSearch(
-  token: Pick<PayToken, "contractAddress" | "symbol" | "providerSymbol">,
+  token: Pick<PayToken, "symbol" | "providerSymbol"> & { contractAddress?: string | null },
   query: string,
 ): boolean {
   const q = query.trim().toLowerCase();
@@ -89,10 +77,6 @@ export function chainBalanceUsd<T extends Pick<PayToken, "blockchain">>(
   return total;
 }
 
-const DISCONNECTED_CHAIN_RANK = new Map<string, number>(
-  DISCONNECTED_CHAIN_ORDER.map((code, index) => [code, index]),
-);
-
 export type { PopularTokenRef };
 export function parsePopularTokens(raw: string | null | undefined): PopularTokenRef[] {
   if (!raw?.trim()) return [];
@@ -129,38 +113,37 @@ export function popularTokensForWallets<T extends {
   return result;
 }
 
-/**
- * No wallet: preferred chains first, then any other chain in the incoming order.
- * A connected wallet with balances: funded chains first by total USD.
- * A connected wallet without balances: keep registry order.
- */
+export function sortChainsAlpha<T extends { chainName: string }>(chains: readonly T[]): T[] {
+  return chains.slice().sort((left, right) => left.chainName.localeCompare(right.chainName));
+}
+
+/** Funded chains first by total USD, then chain name. Hidden balances keep the incoming order. */
 export function sortChainsForSidebar<T extends Pick<PayToken, "blockchain">>(
   chains: SidebarChain[],
   tokens: T[],
   options: {
     showBalances: boolean;
-    walletConnected: boolean;
     getBalanceUsd: (token: T) => number;
   },
 ): SidebarChain[] {
-  if (!options.walletConnected) {
-    const tail = DISCONNECTED_CHAIN_ORDER.length;
-    return chains
-      .map((chain, index) => ({ chain, index }))
-      .sort((left, right) => {
-        const leftRank = DISCONNECTED_CHAIN_RANK.get(left.chain.blockchain) ?? tail;
-        const rightRank = DISCONNECTED_CHAIN_RANK.get(right.chain.blockchain) ?? tail;
-        if (leftRank !== rightRank) return leftRank - rightRank;
-        return left.index - right.index;
-      })
-      .map((item) => item.chain);
-  }
   if (!options.showBalances) return chains.slice();
   return chains.slice().sort((left, right) => {
     const leftUsd = chainBalanceUsd(left.blockchain, tokens, options.getBalanceUsd);
     const rightUsd = chainBalanceUsd(right.blockchain, tokens, options.getBalanceUsd);
     if (rightUsd !== leftUsd) return rightUsd - leftUsd;
     return left.chainName.localeCompare(right.chainName);
+  });
+}
+
+export function payerRailChains<T extends { blockchain: string; chainKind: string }>(
+  chains: readonly T[],
+  owners: Partial<Record<string, string | null | undefined>>,
+  fundedSet: ReadonlySet<string>,
+): T[] {
+  return chains.filter((chain) => {
+    if (!owners[chain.chainKind]) return false;
+    if (chain.chainKind === "evm" && !fundedSet.has(chain.blockchain)) return false;
+    return true;
   });
 }
 
@@ -251,6 +234,147 @@ export function positiveBalanceTokens<T extends {
     getBalanceUsd,
     () => false,
   );
+}
+
+export function isGasToken(token: {
+  contractAddress?: string | null;
+  symbol: string;
+  blockchain: string;
+}): boolean {
+  const addr = String(token.contractAddress || "").trim().toLowerCase();
+  if (!addr || addr === "native" || addr === ZERO_ADDRESS) return true;
+  return token.blockchain === "near" && token.symbol.toUpperCase() === "NEAR";
+}
+
+export function stableSymbolIndex(symbol: string, stableSymbols: readonly string[]): number {
+  const upper = symbol.toUpperCase();
+  return stableSymbols.findIndex((item) => item.toUpperCase() === upper);
+}
+
+export function tokenPriority(
+  token: { contractAddress?: string | null; symbol: string; blockchain: string },
+  stableSymbols: readonly string[] = DEFAULT_STABLE_SYMBOLS,
+): number {
+  if (stableSymbolIndex(token.symbol, stableSymbols) >= 0) return 0;
+  if (isGasToken(token)) return 1;
+  return 2;
+}
+
+export function compareTokensByPriority<T extends {
+  symbol: string;
+  contractAddress?: string | null;
+  blockchain: string;
+  chain: { chainName: string };
+}>(left: T, right: T, stableSymbols: readonly string[] = DEFAULT_STABLE_SYMBOLS): number {
+  const leftPriority = tokenPriority(left, stableSymbols);
+  const rightPriority = tokenPriority(right, stableSymbols);
+  if (leftPriority !== rightPriority) return leftPriority - rightPriority;
+  if (leftPriority === 0) {
+    const leftIndex = stableSymbolIndex(left.symbol, stableSymbols);
+    const rightIndex = stableSymbolIndex(right.symbol, stableSymbols);
+    if (leftIndex !== rightIndex) return leftIndex - rightIndex;
+  }
+  return left.symbol.localeCompare(right.symbol) || left.chain.chainName.localeCompare(right.chain.chainName);
+}
+
+export function sortTokensForChain<T extends {
+  symbol: string;
+  contractAddress?: string | null;
+  blockchain: string;
+  chain: { chainName: string };
+}>(
+  tokens: readonly T[],
+  options: {
+    withBalances: boolean;
+    usdOf: (token: T) => number;
+    loadingOf: (token: T) => boolean;
+    stableSymbols?: readonly string[];
+  },
+): T[] {
+  const stableSymbols = options.stableSymbols ?? DEFAULT_STABLE_SYMBOLS;
+  if (!options.withBalances) {
+    return tokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
+  }
+  return tokens.slice().sort((left, right) => {
+    const leftRank = tokenBalanceRank(options.usdOf(left), options.loadingOf(left));
+    const rightRank = tokenBalanceRank(options.usdOf(right), options.loadingOf(right));
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    if (leftRank === BALANCE_RANK_FUNDED) {
+      const byUsd = options.usdOf(right) - options.usdOf(left);
+      if (byUsd !== 0) return byUsd;
+    }
+    return compareTokensByPriority(left, right, stableSymbols);
+  });
+}
+
+const EVM_SEARCH_GROUP = "evm";
+const EVM_SEARCH_GROUP_NAME = "EVM-based";
+
+export type SearchResultGroup<T> = {
+  blockchain: string;
+  chainName: string;
+  chainKind: string;
+  tokens: T[];
+};
+
+export function groupSearchResults<T extends {
+  blockchain: string;
+  symbol: string;
+  providerSymbol: string;
+  contractAddress?: string | null;
+  chain: { chainName: string; chainKind: string };
+}>(
+  tokens: readonly T[],
+  query: string,
+  options: {
+    role: "payer" | "receiver";
+    usdOf: (token: T) => number;
+    loadingOf: (token: T) => boolean;
+    hasOwner: (chainKind: string) => boolean;
+    stableSymbols?: readonly string[];
+  },
+): SearchResultGroup<T>[] {
+  const matched = tokens.filter((token) => tokenMatchesSearch(token, query));
+  const groups = new Map<string, T[]>();
+  for (const token of matched) {
+    const key = token.chain.chainKind === EVM_SEARCH_GROUP ? EVM_SEARCH_GROUP : token.blockchain;
+    const list = groups.get(key) ?? [];
+    list.push(token);
+    groups.set(key, list);
+  }
+  const stableSymbols = options.stableSymbols ?? DEFAULT_STABLE_SYMBOLS;
+  const built = Array.from(groups.entries()).map(([key, groupTokens]) => {
+    const chain = groupTokens[0].chain;
+    const folded = key === EVM_SEARCH_GROUP;
+    const sorted = options.role === "payer"
+      ? sortTokensForChain(groupTokens, {
+        withBalances: options.hasOwner(chain.chainKind),
+        usdOf: options.usdOf,
+        loadingOf: options.loadingOf,
+        stableSymbols,
+      })
+      : groupTokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
+    return {
+      blockchain: folded ? EVM_SEARCH_GROUP : key,
+      chainName: folded ? EVM_SEARCH_GROUP_NAME : chain.chainName,
+      chainKind: chain.chainKind,
+      tokens: sorted,
+      usd: sorted.reduce((total, token) => {
+        const usd = options.usdOf(token);
+        return usd > 0 ? total + usd : total;
+      }, 0),
+    };
+  });
+  built.sort((left, right) => {
+    if (options.role === "payer" && right.usd !== left.usd) return right.usd - left.usd;
+    return left.chainName.localeCompare(right.chainName);
+  });
+  return built.map(({ blockchain, chainName, chainKind, tokens: groupTokens }) => ({
+    blockchain,
+    chainName,
+    chainKind,
+    tokens: groupTokens,
+  }));
 }
 
 export function recentTokensInOrder<T extends { assetId: string }>(

@@ -4,7 +4,10 @@ Widget notes live here. Presentational components stay in [../components/CHANGEL
 
 ## Unreleased
 
-- All Networks folds EVM chains into an `EVM-based` card. The card shows Connect or the address, copy, and disconnect, and `IconArrowDown` expands the selectable chains. Collapsed, the card stacks 16px chain icons and clips any that do not fit.
+- **Breaking:** `PayWidgetsProvider` takes a flat `tokens` list (each token includes `chain`) and `loading`. It no longer fetches config. Removed `apiHost`, `onConfig`, `chainKinds`, `usePayConfig`, `usePayConfigSnapshot`, `refetchPayConfig`, and `DEFAULT_API_HOST`. `normalizePayConfig(source, { chainKinds })` returns `PayToken[]`. Hosts that need chains call `chainsFromTokens`.
+- **Breaking:** `ChainKind` is any string. Built-in kinds stay on `KNOWN_CHAIN_KINDS`. Pass `chainKindLabels` for custom names.
+- **Breaking:** Balances are either async `readBalances` or sync `getBalance` / `isBalanceLoading`.
+- Payer and receiver token select follow the new views: wallet, All Networks drill-in with a slide, receiver All, and global search. The rail and All Networks keep one entry per chain. Search folds EVM chains into one EVM-based group.
 - A connected wallet shows `IconCopy` before disconnect. Copying calls `onCopyAddress`.
 - Documented `@stableflow/pay-widgets/token-select` in `doc/widgets/token-select.md`.
 - Token select matches the v2 dialog: 474px desktop width, gray search field, blue network chips. It accepts `className`, `titleClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `railClassName`, and `rowClassName`.

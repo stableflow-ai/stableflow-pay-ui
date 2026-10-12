@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog } from "@stableflow/pay-ui/dialog";
 import { SearchInput } from "@stableflow/pay-ui/search-input";
 import {
@@ -9,32 +9,42 @@ import {
 } from "./balances";
 import { ALL_CHAIN_FILTER, POPULAR_SECTION_TITLE, TOKEN_BALANCE_POLL_MS } from "./config";
 import { usePayWidgets } from "./context";
-import { usePayConfigSnapshot } from "./pay-config";
-import { getTokenSelectPrefs, setLastBlockchain, setLastToken, useTokenSelectPrefs } from "./prefs";
-import { cx, fontSans } from "./format";
 import { ChainPane } from "./chain-pane";
-import { NetworkRail } from "./network-rail";
-import { TokenPane, type TokenListSection } from "./token-pane";
-import type { ChainKind, ChainOwners, PayToken, TokenSelectRole } from "./types";
+import { cx, fontSans } from "./format";
+import { NetworkRail, type RailSelection } from "./network-rail";
+import { PaneTransition } from "./pane-transition";
+import { getTokenSelectPrefs, setLastBlockchain, setLastToken, useTokenSelectPrefs } from "./prefs";
+import { SearchResults } from "./search-results";
+import { TokenPane, type TokenListSection, type TokenPaneHeader } from "./token-pane";
+import { ownerKey, type ChainKind, type ChainOwners, type PayChain, type PayToken, type TokenSelectRole } from "./types";
 import {
   chainHasBalance,
+  chainsFromTokens,
+  groupSearchResults,
   initialChainFilter,
   isBlockchainDisabled,
   isChainKindLocked,
-  matchesChainFilter,
+  payerRailChains,
   popularTokensForWallets,
   positiveBalanceTokens,
   recentTokensInOrder,
+  sortChainsAlpha,
   sortChainsForSidebar,
-  sortTokensByBalance,
-  sortTokensBySymbol,
+  sortTokensForChain,
+  compareTokensByPriority,
   tokenBalanceUsd,
-  tokenMatchesSearch,
 } from "./utils";
 
 export type TokenSelectSelection = {
   token: PayToken;
 };
+
+export type PaneView =
+  | { kind: "wallet" }
+  | { kind: "all" }
+  | { kind: "rail-chain"; blockchain: string }
+  | { kind: "networks" }
+  | { kind: "network-chain"; blockchain: string };
 
 export type TokenSelectDialogProps = {
   open: boolean;
@@ -51,6 +61,7 @@ export type TokenSelectDialogProps = {
   disabledReason?: string;
   className?: string;
   titleClassName?: string;
+  headerClassName?: string;
   closeClassName?: string;
   contentClassName?: string;
   searchClassName?: string;
@@ -59,14 +70,6 @@ export type TokenSelectDialogProps = {
 };
 
 const SEARCH_INPUT_CLASS = "h-[36px] rounded-[18px] border-[#e3e3e3] bg-[#f6f6f6] text-sm placeholder:text-black/30";
-
-function chainsFromTokens(tokens: PayToken[]) {
-  const byCode = new Map<string, PayToken["chain"]>();
-  for (const token of tokens) {
-    if (!byCode.has(token.blockchain)) byCode.set(token.blockchain, token.chain);
-  }
-  return Array.from(byCode.values());
-}
 
 function ownerForToken(owners: ChainOwners, token: PayToken): string | null {
   return owners[token.chain.chainKind] ?? null;
@@ -79,6 +82,17 @@ function hasAnyOwner(owners: ChainOwners): boolean {
 function isNativeToken(token: PayToken): boolean {
   const addr = String(token.contractAddress || "").trim().toLowerCase();
   return !addr || addr === "native" || addr === "0x0000000000000000000000000000000000000000";
+}
+
+function railSelection(view: PaneView): RailSelection {
+  if (view.kind === "wallet") return { kind: "wallet" };
+  if (view.kind === "all") return { kind: "all" };
+  if (view.kind === "rail-chain") return { kind: "chain", blockchain: view.blockchain };
+  return { kind: "networks" };
+}
+
+function chainByCode(chains: readonly PayChain[], blockchain: string): PayChain | undefined {
+  return chains.find((chain) => chain.blockchain === blockchain);
 }
 
 export function TokenSelectDialog(props: TokenSelectDialogProps) {
@@ -97,6 +111,7 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     disabledReason,
     className,
     titleClassName,
+    headerClassName,
     closeClassName,
     contentClassName,
     searchClassName,
@@ -105,63 +120,74 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
   } = props;
   const payer = role === "payer";
   const showBalances = payer;
-  const { wallet, popularTokens: popularRefs } = usePayWidgets();
-  const { tokens, status } = usePayConfigSnapshot();
+  const {
+    wallet,
+    popularTokens: popularRefs,
+    tokens,
+    loading,
+    stableSymbols,
+    balanceMode,
+    getBalance: syncGetBalance,
+    isBalanceLoading: syncIsBalanceLoading,
+  } = usePayWidgets();
   const prefs = useTokenSelectPrefs();
   const balanceEntries = useSyncExternalStore(subscribePayTokenBalances, getPayTokenBalances, getPayTokenBalances);
   const connectedOwners = useMemo(() => {
     const owners: ChainOwners = {};
     for (const [kind, account] of Object.entries(wallet.accounts)) {
       const address = account?.address?.trim();
-      if (address) owners[kind as ChainKind] = address;
+      if (address) owners[kind] = address;
     }
     return owners;
   }, [wallet.accounts]);
-  const owners = showBalances ? { ...connectedOwners, ...balanceOwners } : {};
+  const owners = useMemo(
+    () => (showBalances ? { ...connectedOwners, ...balanceOwners } : {}),
+    [showBalances, connectedOwners, balanceOwners],
+  );
   const walletConnected = hasAnyOwner(connectedOwners);
-  const walletWasConnected = useRef<boolean | null>(null);
   const [search, setSearch] = useState("");
-  const [chainFilter, setChainFilter] = useState(ALL_CHAIN_FILTER);
-  const [view, setView] = useState<"token" | "network">("token");
-  const loading = status === "loading" || status === "idle";
+  const [view, setView] = useState<PaneView>(payer ? { kind: "networks" } : { kind: "all" });
+  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
+  const networksScrollRef = useRef<HTMLDivElement>(null);
+  const savedNetworksScroll = useRef(0);
+  const walletConnectedRef = useRef(walletConnected);
+  const payerRef = useRef(payer);
+  const lockRef = useRef(lockChainKind);
+  const tokensRef = useRef(tokens);
+  walletConnectedRef.current = walletConnected;
+  payerRef.current = payer;
+  lockRef.current = lockChainKind;
+  tokensRef.current = tokens;
 
   useEffect(() => {
     if (!open) return;
     setSearch("");
-    if (lockChainKind) {
-      setView("token");
+    const lock = lockRef.current;
+    if (lock) {
+      const filter = initialChainFilter(
+        lock,
+        getTokenSelectPrefs().recentBlockchains,
+        chainsFromTokens(tokensRef.current),
+      );
+      if (filter !== ALL_CHAIN_FILTER) {
+        setView({ kind: "rail-chain", blockchain: filter });
+        return;
+      }
       return;
     }
-    if (!payer) {
-      setView("token");
-      setChainFilter(ALL_CHAIN_FILTER);
+    if (!payerRef.current) {
+      setView({ kind: "all" });
+      return;
     }
-  }, [open, lockChainKind, payer]);
+    setView(walletConnectedRef.current ? { kind: "wallet" } : { kind: "networks" });
+  }, [open]);
 
   useEffect(() => {
-    if (!open || !lockChainKind || tokens.length === 0) return;
-    setChainFilter(initialChainFilter(
-      lockChainKind,
-      getTokenSelectPrefs().recentBlockchains,
-      chainsFromTokens(tokens),
-    ));
+    if (!open || !lockChainKind) return;
+    const filter = initialChainFilter(lockChainKind, getTokenSelectPrefs().recentBlockchains, chainsFromTokens(tokens));
+    if (filter === ALL_CHAIN_FILTER) return;
+    setView((current) => (current.kind === "rail-chain" ? current : { kind: "rail-chain", blockchain: filter }));
   }, [open, lockChainKind, tokens]);
-
-  useEffect(() => {
-    if (!open) {
-      walletWasConnected.current = null;
-      return;
-    }
-    if (lockChainKind || !payer) {
-      walletWasConnected.current = walletConnected;
-      return;
-    }
-    const previous = walletWasConnected.current;
-    walletWasConnected.current = walletConnected;
-    if (previous !== null && previous === walletConnected) return;
-    setView(walletConnected ? "token" : "network");
-    setChainFilter(ALL_CHAIN_FILTER);
-  }, [open, lockChainKind, payer, walletConnected]);
 
   const allowed = useMemo(() => {
     if (!allowedBlockchains || allowedBlockchains.length === 0) return null;
@@ -178,26 +204,27 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     });
   }, [tokens, allowed, excludeNative, payer]);
 
-  const ownerKey = (["evm", "near", "solana", "tron", "zec"] as const)
-    .map((kind) => `${kind}:${owners[kind] ?? ""}`)
-    .join("|");
+  const ownersKey = ownerKey(owners);
   const tokenKey = useMemo(() => scopedTokens.map((token) => token.assetId).join("|"), [scopedTokens]);
   const ownersRef = useRef(owners);
-  const tokensRef = useRef(scopedTokens);
+  const scopedRef = useRef(scopedTokens);
   ownersRef.current = owners;
-  tokensRef.current = scopedTokens;
+  scopedRef.current = scopedTokens;
 
   useEffect(() => {
-    if (!showBalances || !open || !hasAnyOwner(ownersRef.current) || !tokenKey) return;
-    void ensurePayTokenBalances(ownersRef.current, tokensRef.current);
+    if (balanceMode !== "async" || !showBalances || !open || !hasAnyOwner(ownersRef.current) || !tokenKey) return;
+    void ensurePayTokenBalances(ownersRef.current, scopedRef.current);
     const id = window.setInterval(() => {
-      void ensurePayTokenBalances(ownersRef.current, tokensRef.current, { force: true });
+      void ensurePayTokenBalances(ownersRef.current, scopedRef.current, { force: true });
     }, TOKEN_BALANCE_POLL_MS);
     return () => window.clearInterval(id);
-  }, [showBalances, open, ownerKey, tokenKey]);
+  }, [balanceMode, showBalances, open, ownersKey, tokenKey]);
 
   function balanceOf(token: PayToken) {
-    return getPayTokenBalance(ownerForToken(owners, token), token.assetId)?.formatted;
+    const owner = ownerForToken(owners, token);
+    if (!showBalances || !owner) return undefined;
+    if (balanceMode === "sync" && syncGetBalance) return syncGetBalance(token, owner) ?? undefined;
+    return getPayTokenBalance(owner, token.assetId)?.formatted;
   }
 
   function usdOf(token: PayToken) {
@@ -209,40 +236,45 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     if (!showBalances) return false;
     const owner = ownerForToken(owners, token);
     if (!owner) return false;
+    if (balanceMode === "sync") return syncIsBalanceLoading?.(token, owner) ?? false;
     const entry = getPayTokenBalance(owner, token.assetId);
     return entry?.formatted == null && (!entry || entry.status === "loading");
   }
 
-  const availableChains = useMemo(() => {
-    const codes = new Set(scopedTokens.map((token) => token.blockchain));
-    const byCode = new Map<string, PayToken["chain"]>();
-    for (const token of scopedTokens) {
-      if (codes.has(token.blockchain) && !byCode.has(token.blockchain)) byCode.set(token.blockchain, token.chain);
-    }
-    return Array.from(byCode.values());
-  }, [scopedTokens]);
-
-  const sortedChains = useMemo(
-    () => sortChainsForSidebar(availableChains, scopedTokens, {
-      showBalances,
-      walletConnected,
-      getBalanceUsd: (token) => tokenBalanceUsd(token, getPayTokenBalance(ownerForToken(owners, token), token.assetId)?.formatted),
-    }),
-    [availableChains, scopedTokens, showBalances, walletConnected, owners, balanceEntries],
-  );
+  const availableChains = useMemo(() => chainsFromTokens(scopedTokens), [scopedTokens]);
 
   const fundedBlockchains = useMemo(() => {
     const funded = new Set<string>();
     if (!showBalances) return funded;
     for (const chain of availableChains) {
-      if (chainHasBalance(chain.blockchain, scopedTokens, (token) => (
-        getPayTokenBalance(ownerForToken(owners, token), token.assetId)?.formatted
-      ))) {
+      if (chainHasBalance(chain.blockchain, scopedTokens, (token) => balanceOf(token))) {
         funded.add(chain.blockchain);
       }
     }
     return funded;
-  }, [availableChains, owners, scopedTokens, showBalances, balanceEntries]);
+  }, [availableChains, owners, scopedTokens, showBalances, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
+
+  const railChains = useMemo(() => {
+    if (!payer) return sortChainsAlpha(availableChains);
+    const connected = payerRailChains(availableChains, owners, fundedBlockchains);
+    return sortChainsForSidebar(connected, scopedTokens, {
+      showBalances,
+      getBalanceUsd: (token) => tokenBalanceUsd(token, balanceOf(token)),
+    });
+  }, [payer, availableChains, owners, fundedBlockchains, scopedTokens, showBalances, balanceEntries, balanceMode, syncGetBalance]);
+
+  const networkChains = useMemo(() => sortChainsAlpha(availableChains), [availableChains]);
+
+  useEffect(() => {
+    if (!open || !payer || lockChainKind) return;
+    setView((current) => {
+      if (current.kind === "wallet" && !walletConnected) return { kind: "networks" };
+      if (current.kind === "rail-chain" && !railChains.some((chain) => chain.blockchain === current.blockchain)) {
+        return walletConnected ? { kind: "wallet" } : { kind: "networks" };
+      }
+      return current;
+    });
+  }, [open, payer, lockChainKind, walletConnected, railChains]);
 
   const popularTokens = useMemo(
     () => popularTokensForWallets(scopedTokens, popularRefs, (kind) => Boolean(connectedOwners[kind])),
@@ -250,22 +282,10 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
   );
 
   const newestAssetId = showBalances ? prefs.recentAssetIds[0] ?? null : null;
-  const searchingAll = chainFilter === ALL_CHAIN_FILTER && search.trim().length > 0;
-  const walletKind = chainFilter === ALL_CHAIN_FILTER
-    ? null
-    : availableChains.find((chain) => chain.blockchain === chainFilter)?.chainKind ?? null;
+  const searching = search.trim().length > 0;
 
   const sections = useMemo((): TokenListSection[] => {
-    if (showBalances && chainFilter === ALL_CHAIN_FILTER && searchingAll) {
-      const matched = scopedTokens.filter((token) => tokenMatchesSearch(token, search));
-      return [{
-        id: "search",
-        tokens: sortTokensByBalance(matched, usdOf, loadingOf),
-        badgeAssetId: newestAssetId,
-      }];
-    }
-
-    if (showBalances && chainFilter === ALL_CHAIN_FILTER) {
+    if (view.kind === "wallet") {
       const next: TokenListSection[] = [];
       const recent = recentTokensInOrder(scopedTokens, prefs.recentAssetIds);
       if (recent.length > 0) {
@@ -286,47 +306,93 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
       return next;
     }
 
-    const matched = scopedTokens.filter((token) => (
-      matchesChainFilter(token, chainFilter) && tokenMatchesSearch(token, search)
-    ));
-
-    if (!showBalances && chainFilter === ALL_CHAIN_FILTER && !search.trim()) {
+    if (view.kind === "all") {
       const next: TokenListSection[] = [];
       if (popularTokens.length > 0) {
         next.push({ id: "popular", title: POPULAR_SECTION_TITLE, tokens: popularTokens });
       }
-      next.push({ id: "all", tokens: sortTokensBySymbol(matched) });
+      const sorted = scopedTokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
+      next.push({ id: "all", tokens: sorted });
       return next;
     }
 
-    const chainName = availableChains.find((chain) => chain.blockchain === chainFilter)?.chainName ?? chainFilter;
-    return [{
-      id: chainFilter,
-      title: chainName,
-      walletKind,
-      tokens: showBalances ? sortTokensByBalance(matched, usdOf, loadingOf) : sortTokensBySymbol(matched),
-      badgeAssetId: showBalances ? newestAssetId : null,
-    }];
+    if (view.kind === "rail-chain" || view.kind === "network-chain") {
+      const matched = scopedTokens.filter((token) => token.blockchain === view.blockchain);
+      if (!payer) {
+        const next: TokenListSection[] = [];
+        const popular = popularTokens.filter((token) => token.blockchain === view.blockchain);
+        if (popular.length > 0) {
+          next.push({ id: "popular", title: POPULAR_SECTION_TITLE, tokens: popular });
+        }
+        next.push({
+          id: view.blockchain,
+          tokens: matched.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols)),
+        });
+        return next;
+      }
+      const chain = chainByCode(availableChains, view.blockchain);
+      return [{
+        id: view.blockchain,
+        tokens: sortTokensForChain(matched, {
+          withBalances: Boolean(chain && owners[chain.chainKind]),
+          usdOf,
+          loadingOf,
+          stableSymbols,
+        }),
+        badgeAssetId: newestAssetId,
+      }];
+    }
+
+    return [];
   }, [
-    showBalances,
-    chainFilter,
-    searchingAll,
-    search,
+    view,
+    payer,
     scopedTokens,
     prefs.recentAssetIds,
     newestAssetId,
-    walletKind,
     balanceEntries,
     owners,
     popularTokens,
     availableChains,
+    stableSymbols,
+    balanceMode,
+    syncGetBalance,
+    syncIsBalanceLoading,
   ]);
 
-  function handleSelectFilter(filter: string) {
-    setChainFilter(filter);
-    if (filter !== ALL_CHAIN_FILTER) setLastBlockchain(filter);
-    setView("token");
+  const searchGroups = useMemo(() => {
+    if (!searching) return [];
+    return groupSearchResults(scopedTokens, search, {
+      role: payer ? "payer" : "receiver",
+      usdOf,
+      loadingOf,
+      hasOwner: (kind) => Boolean(owners[kind]),
+      stableSymbols,
+    });
+  }, [searching, scopedTokens, search, payer, owners, stableSymbols, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
+
+  function handleSelectChain(blockchain: string, fromNetworks: boolean) {
+    setLastBlockchain(blockchain);
+    if (fromNetworks) {
+      savedNetworksScroll.current = networksScrollRef.current?.scrollTop ?? 0;
+      setSlideDirection(1);
+      setView({ kind: "network-chain", blockchain });
+      return;
+    }
+    setView({ kind: "rail-chain", blockchain });
   }
+
+  function handleBackToNetworks() {
+    setSlideDirection(-1);
+    setView({ kind: "networks" });
+  }
+
+  useLayoutEffect(() => {
+    if (view.kind !== "networks" || slideDirection !== -1) return;
+    const node = networksScrollRef.current;
+    if (!node) return;
+    node.scrollTop = savedNetworksScroll.current;
+  }, [view, slideDirection]);
 
   function handleSelectToken(token: PayToken) {
     if (isBlockchainDisabled(token.blockchain, disabledBlockchains)) return;
@@ -337,10 +403,39 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     onClose();
   }
 
+  const activeChain = view.kind === "rail-chain" || view.kind === "network-chain"
+    ? chainByCode(availableChains, view.blockchain)
+    : undefined;
+  const chainHeader: TokenPaneHeader | null = view.kind === "network-chain"
+    ? { kind: "back", title: activeChain?.chainName ?? view.blockchain, onBack: handleBackToNetworks, walletKind: activeChain?.chainKind }
+    : view.kind === "rail-chain"
+      ? { kind: "chain", title: activeChain?.chainName ?? view.blockchain, walletKind: activeChain?.chainKind }
+      : null;
+
   const awaitingBalances = showBalances
-    && chainFilter === ALL_CHAIN_FILTER
-    && !searchingAll
+    && sections.every((section) => section.tokens.length === 0)
     && scopedTokens.some((token) => loadingOf(token));
+  const tokenDisabled = (token: PayToken) => (
+    isBlockchainDisabled(token.blockchain, disabledBlockchains)
+    || isChainKindLocked(token.chain.chainKind, lockChainKind)
+  );
+  const sliding = view.kind === "networks" || view.kind === "network-chain";
+
+  const tokenPane = (
+    <TokenPane
+      sections={sections}
+      header={chainHeader}
+      selectedAssetId={selectedAssetId}
+      loading={loading || awaitingBalances}
+      showBalances={showBalances}
+      showWalletStatus={payer}
+      getBalance={balanceOf}
+      isBalanceLoading={loadingOf}
+      onSelectToken={handleSelectToken}
+      isTokenDisabled={tokenDisabled}
+      rowClassName={rowClassName}
+    />
+  );
 
   return (
     <Dialog
@@ -352,9 +447,10 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
         fontSans,
         titleClassName,
       )}
-      closeClassName={cx(view === "token" ? "ml-0" : undefined, closeClassName)}
-      contentClassName={contentClassName}
-      headerAction={view === "token" ? (
+      headerClassName={cx("h-14 border-b border-[#e3e3e3] px-[22px] pr-4", headerClassName)}
+      closeClassName={cx("md:ml-0", closeClassName)}
+      contentClassName={cx("overflow-hidden", contentClassName)}
+      headerAction={(
         <SearchInput
           value={search}
           onChange={setSearch}
@@ -362,65 +458,68 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
           className="ml-auto hidden w-[215px] shrink-0 md:block"
           inputClassName={cx(SEARCH_INPUT_CLASS, searchClassName)}
         />
-      ) : null}
-      cardClassName={cx("w-full max-h-[90vh] md:w-[474px]", className)}
+      )}
+      cardClassName={cx(
+        "w-full max-h-[90vh] gap-0 rounded-[12px] border border-[#e0e0e0] bg-[#fdfdfd] p-0 shadow-[0_0_40px_0_rgba(0,0,0,0.06)] md:w-[474px] md:rounded-[12px] md:p-0",
+        className,
+      )}
     >
       <div className="flex h-[min(520px,62vh)] min-h-0 flex-col overflow-hidden md:h-[min(555px,70vh)]">
-        {view === "token" ? (
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="search or paste address"
-            className="mb-3 shrink-0 md:hidden"
-            inputClassName={cx(SEARCH_INPUT_CLASS, searchClassName)}
-          />
-        ) : null}
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="search or paste address"
+          className="mb-3 shrink-0 px-[22px] md:hidden"
+          inputClassName={cx(SEARCH_INPUT_CLASS, searchClassName)}
+        />
         <div className="flex min-h-0 flex-1">
           <NetworkRail
-            view={view}
-            chainFilter={chainFilter}
-            chips={sortedChains}
-            fundedBlockchains={fundedBlockchains}
+            role={payer ? "payer" : "receiver"}
             walletConnected={walletConnected}
-            showAllLabel={!payer}
+            selection={railSelection(view)}
+            chains={railChains}
+            fundedBlockchains={fundedBlockchains}
             lockChainKind={lockChainKind}
             disabledBlockchains={disabledBlockchains}
             disabledReason={disabledReason}
-            onSelectFilter={handleSelectFilter}
-            onOpenNetworks={() => setView("network")}
+            onSelectWallet={() => setView({ kind: "wallet" })}
+            onSelectAll={() => setView({ kind: "all" })}
+            onSelectNetworks={() => setView({ kind: "networks" })}
+            onSelectChain={(blockchain) => handleSelectChain(blockchain, false)}
             className={railClassName}
           />
-          {view === "network" ? (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col pl-3 md:pl-4">
-              <ChainPane
-                chains={sortedChains}
-                fundedBlockchains={fundedBlockchains}
-                showWalletStatus={payer}
-                onSelectFilter={handleSelectFilter}
-                lockChainKind={lockChainKind}
-                disabledBlockchains={disabledBlockchains}
-                disabledReason={disabledReason}
-              />
-            </div>
+          {searching ? (
+            <SearchResults
+              groups={searchGroups}
+              selectedAssetId={selectedAssetId}
+              loading={loading}
+              showBalances={showBalances}
+              showWalletStatus={payer}
+              getBalance={balanceOf}
+              isBalanceLoading={loadingOf}
+              onSelectToken={handleSelectToken}
+              isTokenDisabled={tokenDisabled}
+              rowClassName={rowClassName}
+            />
+          ) : sliding ? (
+            <PaneTransition
+              paneKey={view.kind === "network-chain" ? `network-chain:${view.blockchain}` : "networks"}
+              direction={slideDirection}
+            >
+              {view.kind === "networks" ? (
+                <ChainPane
+                  chains={networkChains}
+                  showWalletStatus={payer}
+                  onSelectChain={(blockchain) => handleSelectChain(blockchain, true)}
+                  lockChainKind={lockChainKind}
+                  disabledBlockchains={disabledBlockchains}
+                  disabledReason={disabledReason}
+                  scrollRef={networksScrollRef}
+                />
+              ) : tokenPane}
+            </PaneTransition>
           ) : (
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col pl-3 md:pl-4">
-              <TokenPane
-                sections={sections}
-                selectedAssetId={selectedAssetId}
-                loading={loading || awaitingBalances}
-                showBalances={showBalances}
-                showWalletStatus={payer}
-                getBalance={balanceOf}
-                isBalanceLoading={loadingOf}
-                onSelectToken={handleSelectToken}
-                isTokenDisabled={(token) => (
-                  isBlockchainDisabled(token.blockchain, disabledBlockchains)
-                  || isChainKindLocked(token.chain.chainKind, lockChainKind)
-                )}
-                searchClassName={searchClassName}
-                rowClassName={rowClassName}
-              />
-            </div>
+            <div className="relative min-h-0 flex-1">{tokenPane}</div>
           )}
         </div>
       </div>

@@ -1,6 +1,6 @@
-export type ChainKind = "evm" | "near" | "solana" | "tron" | "zec";
+export type ChainKind = string;
 
-export const CHAIN_KINDS: readonly ChainKind[] = ["evm", "near", "solana", "tron", "zec"];
+export const KNOWN_CHAIN_KINDS = ["evm", "near", "solana", "tron", "zec"] as const;
 
 export type PayChain = {
   blockchain: string;
@@ -91,6 +91,14 @@ export type ReadBalances = (batch: {
 
 export type TokenSelectRole = "payer" | "receiver";
 
-export type ChainOwners = Partial<Record<ChainKind, string>>;
+export type ChainOwners = Partial<Record<string, string>>;
+
+/** Stable identity for the connected owners. Keys are sorted so order does not matter. */
+export function ownerKey(owners: ChainOwners): string {
+  return Object.keys(owners)
+    .sort()
+    .map((kind) => `${kind}:${owners[kind] ?? ""}`)
+    .join("|");
+}
 
 export type TokenBalanceStatus = "idle" | "loading" | "success" | "error";

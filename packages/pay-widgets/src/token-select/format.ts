@@ -1,8 +1,11 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { CHAIN_KIND_LABELS } from "./config";
 
 /** Host-independent sans stack. Underscores in the arbitrary value become spaces. */
 export const fontSans = "[font-family:Montserrat,PingFang_SC,system-ui,sans-serif]";
+
+export const thinScrollbar = "[&::-webkit-scrollbar]:w-[4px] [&::-webkit-scrollbar-thumb]:rounded-[12px] [&::-webkit-scrollbar-thumb]:bg-[#d9d9d9] [&::-webkit-scrollbar-track]:bg-transparent supports-[not_selector(::-webkit-scrollbar)]:[scrollbar-width:thin] [scrollbar-color:#d9d9d9_transparent]";
 
 export function cx(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,13 +18,8 @@ export function formatAddress(address: string | null | undefined, prefix = 4, su
   return `${address.slice(0, prefix)}...${address.slice(-suffix)}`;
 }
 
-export function chainKindLabel(kind: string): string {
-  if (kind === "evm") return "EVM";
-  if (kind === "near") return "Near";
-  if (kind === "solana") return "Solana";
-  if (kind === "tron") return "Tron";
-  if (kind === "zec") return "Zcash";
-  return kind;
+export function chainKindLabel(kind: string, labels?: Record<string, string>): string {
+  return labels?.[kind] ?? CHAIN_KIND_LABELS[kind] ?? kind;
 }
 
 /** Truncate a decimal string toward zero and group the integer part. */

@@ -10,10 +10,43 @@ export type TokenBalance = {
   updatedAt: number | null;
 };
 
+type SyncBalanceReader = {
+  getBalance: (token: PayToken, owner: string) => string | null | undefined;
+  isBalanceLoading: (token: PayToken, owner: string) => boolean;
+};
+
 const listeners = new Set<() => void>();
 let balances: Record<string, TokenBalance> = {};
 let reader: ReadBalances | null = null;
+let syncReader: SyncBalanceReader | null = null;
+let tokensById = new Map<string, PayToken>();
 const chainInflight = new Map<string, Promise<void>>();
+
+export function configureBalanceReaders(options: {
+  readBalances?: ReadBalances | null;
+  getBalance?: SyncBalanceReader["getBalance"] | null;
+  isBalanceLoading?: SyncBalanceReader["isBalanceLoading"] | null;
+}) {
+  reader = options.readBalances ?? null;
+  if (!options.readBalances && options.getBalance) {
+    syncReader = {
+      getBalance: options.getBalance,
+      isBalanceLoading: options.isBalanceLoading ?? (() => false),
+    };
+    return;
+  }
+  syncReader = null;
+}
+
+export function setBalanceTokens(tokens: readonly PayToken[]) {
+  tokensById = new Map(tokens.map((token) => [token.assetId, token]));
+}
+
+export function payBalanceMode(): "async" | "sync" | "none" {
+  if (reader) return "async";
+  if (syncReader) return "sync";
+  return "none";
+}
 
 function emit() {
   balances = { ...balances };
@@ -63,6 +96,7 @@ function withStaleOnError(prev: TokenBalance | undefined, next: TokenBalance): T
 
 export function setBalanceReader(next: ReadBalances | null) {
   reader = next;
+  if (next) syncReader = null;
 }
 
 export function clearPayTokenBalances() {
@@ -70,8 +104,22 @@ export function clearPayTokenBalances() {
   emit();
 }
 
+function syncBalance(owner: string, assetId: string): TokenBalance | undefined {
+  if (!syncReader) return undefined;
+  const token = tokensById.get(assetId);
+  if (!token) return undefined;
+  const loading = syncReader.isBalanceLoading(token, owner);
+  const formatted = syncReader.getBalance(token, owner);
+  if (loading && (formatted == null || formatted === "")) {
+    return { raw: null, formatted: null, status: "loading", error: null, updatedAt: null };
+  }
+  if (formatted == null || formatted === "") return undefined;
+  return { raw: null, formatted, status: "success", error: null, updatedAt: null };
+}
+
 export function getPayTokenBalance(owner: string | null | undefined, assetId: string | null | undefined): TokenBalance | undefined {
   if (!owner || !assetId) return undefined;
+  if (syncReader) return syncBalance(owner, assetId);
   return balances[`${owner}:${assetId}`] ?? balances[`${owner.toLowerCase()}:${assetId}`];
 }
 
@@ -190,6 +238,7 @@ export async function ensurePayTokenBalances(
   tokens: PayToken[],
   opts?: { force?: boolean },
 ) {
+  if (syncReader || !reader) return;
   const force = Boolean(opts?.force);
   const groups = groupByChain(tokens);
   await Promise.all(Array.from(groups.values()).map((group) => {

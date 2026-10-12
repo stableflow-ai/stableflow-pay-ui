@@ -7,3 +7,5 @@ Import `@stableflow/pay-ui/overlay`.
 ```ts
 import { Overlay, FLOATING_LAYER_Z_INDEX } from "@stableflow/pay-ui/overlay";
 ```
+
+`OverlayChromeProps` and `OverlayPanel` accept `headerClassName`. It merges onto the header row. `Dialog` and `Drawer` pass it through.

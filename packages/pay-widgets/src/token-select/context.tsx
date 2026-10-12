@@ -1,62 +1,103 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { clearPayTokenBalances, setBalanceReader } from "./balances";
-import { setChainKindOverrides, usePayConfig } from "./pay-config";
-import type { ChainKind, PayConfigSource, PayWallet, PopularTokenRef, ReadBalances } from "./types";
+import { useEffect, type ReactNode } from "react";
+import { createContext, useContext } from "react";
+import { clearPayTokenBalances, configureBalanceReaders, setBalanceTokens } from "./balances";
+import { DEFAULT_STABLE_SYMBOLS } from "./config";
+import type { PayToken, PayWallet, PopularTokenRef, ReadBalances } from "./types";
+
+export type PayBalanceMode = "async" | "sync" | "none";
 
 type PayWidgetsContextValue = {
+  tokens: PayToken[];
+  loading: boolean;
   wallet: PayWallet;
   popularTokens: PopularTokenRef[];
+  stableSymbols: string[];
+  chainKindLabels: Record<string, string>;
   onCopyAddress?: (address: string) => void;
+  balanceMode: PayBalanceMode;
+  getBalance: ((token: PayToken, owner: string) => string | null | undefined) | null;
+  isBalanceLoading: ((token: PayToken, owner: string) => boolean) | null;
 };
 
 const PayWidgetsContext = createContext<PayWidgetsContextValue | null>(null);
 
 export type PayWidgetsProviderProps = {
-  apiHost?: string;
-  popularTokens?: PopularTokenRef[];
+  tokens: PayToken[];
+  loading?: boolean;
   wallet: PayWallet;
-  readBalances: ReadBalances;
-  onConfig?: (config: PayConfigSource) => void;
+  readBalances?: ReadBalances;
+  getBalance?: (token: PayToken, owner: string) => string | null | undefined;
+  isBalanceLoading?: (token: PayToken, owner: string) => boolean;
+  popularTokens?: PopularTokenRef[];
+  stableSymbols?: string[];
+  chainKindLabels?: Record<string, string>;
   onCopyAddress?: (address: string) => void;
-  chainKinds?: Partial<Record<string, ChainKind>>;
   children: ReactNode;
 };
 
+function isProduction() {
+  const env = (globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV;
+  return env === "production";
+}
+
+function warnBalanceMode(readBalances: ReadBalances | undefined, getBalance: PayWidgetsProviderProps["getBalance"]) {
+  if (isProduction()) return;
+  if (readBalances && getBalance) {
+    console.warn("PayWidgetsProvider: both readBalances and getBalance were passed; using readBalances.");
+    return;
+  }
+  if (!readBalances && !getBalance) {
+    console.warn("PayWidgetsProvider: pass readBalances or getBalance so token balances can load.");
+  }
+}
+
 export function PayWidgetsProvider(props: PayWidgetsProviderProps) {
   const {
-    apiHost,
+    tokens,
+    loading = false,
     popularTokens = [],
     wallet,
     readBalances,
-    onConfig,
+    getBalance,
+    isBalanceLoading,
     onCopyAddress,
-    chainKinds,
+    stableSymbols = [...DEFAULT_STABLE_SYMBOLS],
+    chainKindLabels = {},
     children,
   } = props;
-  const config = usePayConfig({ apiHost });
 
   useEffect(() => {
-    setChainKindOverrides(chainKinds);
-  }, [chainKinds]);
+    warnBalanceMode(readBalances, getBalance);
+    configureBalanceReaders({
+      readBalances: readBalances ?? null,
+      getBalance: getBalance ?? null,
+      isBalanceLoading: isBalanceLoading ?? null,
+    });
+    return () => configureBalanceReaders({});
+  }, [readBalances, getBalance, isBalanceLoading]);
 
   useEffect(() => {
-    setBalanceReader(readBalances);
-    return () => setBalanceReader(null);
-  }, [readBalances]);
-
-  useEffect(() => {
-    if (config.status === "success" && config.source) onConfig?.(config.source);
-  }, [config.source, config.status, onConfig]);
+    setBalanceTokens(tokens);
+  }, [tokens]);
 
   const connected = Object.values(wallet.accounts).some((account) => Boolean(account?.address?.trim()));
   useEffect(() => {
     if (!connected) clearPayTokenBalances();
   }, [connected]);
 
-  const value = useMemo(
-    () => ({ wallet, popularTokens, onCopyAddress }),
-    [wallet, popularTokens, onCopyAddress],
-  );
+  const balanceMode: PayBalanceMode = readBalances ? "async" : getBalance ? "sync" : "none";
+  const value: PayWidgetsContextValue = {
+    tokens,
+    loading,
+    wallet,
+    popularTokens,
+    stableSymbols,
+    chainKindLabels,
+    onCopyAddress,
+    balanceMode,
+    getBalance: balanceMode === "sync" ? getBalance ?? null : null,
+    isBalanceLoading: balanceMode === "sync" ? isBalanceLoading ?? null : null,
+  };
 
   return <PayWidgetsContext.Provider value={value}>{children}</PayWidgetsContext.Provider>;
 }
