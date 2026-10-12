@@ -367,7 +367,7 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
         className,
       )}
     >
-      <div className="flex h-[min(620px,70vh)] min-h-0 flex-col gap-2.5 pt-3">
+      <div className="flex h-[min(620px,70vh)] min-h-0 flex-col gap-2.5">
         <div className="flex shrink-0 items-center gap-3.5 px-5">
           <SearchInput
             value={search}

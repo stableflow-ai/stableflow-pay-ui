@@ -114,14 +114,14 @@ export function ChainSelect(props: ChainSelectProps) {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
-        className="flex h-[50px] w-[70px] cursor-pointer items-center justify-center gap-1 rounded-[12px] border border-[#e0e0e0] bg-[#fdfdfd] shadow-[0_0_40px_0_rgba(0,0,0,0.06)]"
+        className="flex h-[50px] w-[70px] cursor-pointer items-center justify-between pl-[9px] pr-[12px] gap-1.5 rounded-[12px] border border-[#e0e0e0] bg-[#fdfdfd] shadow-[0_0_40px_0_rgba(0,0,0,0.06)]"
       >
         {selected ? (
-          <img src={selected.logo} alt="" className="size-8 rounded-[8px] object-cover" />
+          <img src={selected.logo} alt="" className="size-7 rounded-[8px] object-cover" />
         ) : (
-          <ChainStack chains={previewChains} logoClassName="size-[11px] rounded-[2px] object-cover" />
+          <ChainStack chains={previewChains} logoClassName="size-[12px] rounded-[2px] object-cover" />
         )}
-        <IconChevron className={cx("size-2.5 text-black", open ? "-rotate-90" : "rotate-90")} />
+        <IconChevron className={cx("size-2.5 text-black duration-150", open ? "-rotate-90" : "rotate-90")} />
       </button>
       {open && isDesktop ? (
         <div
