@@ -92,7 +92,7 @@ export function OverlayPanel(props: OverlayPanelProps) {
       aria-labelledby={hasTitle ? titleId : undefined}
       aria-label={hasTitle ? undefined : ariaLabel}
       tabIndex={-1}
-      className={cn("relative flex flex-col gap-5", cardClassName)}
+      className={cn("relative flex flex-col gap-5 outline-none", cardClassName)}
       style={style}
       onClick={(event) => event.stopPropagation()}
     >
