@@ -74,6 +74,8 @@ Stablecoins sort before gas tokens, then other symbols. Gas is a native asset (e
 
 Search folds every EVM chain into one EVM-based group. Other chains stay in their own groups. Tokens inside a group follow the chain-list order. Payer groups sort by the matched tokens' USD, then group name. Receiver groups sort by group name.
 
+Token icons load when the row enters the viewport. A missing or failed CDN image falls back to `default_icon.png`. A refresh that already has a balance keeps that amount on screen and replaces it when the new value arrives. The spinner shows only while a row has no balance yet.
+
 ## Dialog
 
 | Prop | Role |

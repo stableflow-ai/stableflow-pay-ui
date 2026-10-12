@@ -26,6 +26,8 @@ const CHAIN_LOGO_ALIAS: Record<string, string> = {
   zcash: "zcash",
 };
 
+export const DEFAULT_TOKEN_LOGO = `${LOGO_HOST}/tokens/default_icon.png`;
+
 function logoPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${LOGO_HOST}${normalized}`;

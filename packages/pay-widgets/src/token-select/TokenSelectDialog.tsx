@@ -236,9 +236,11 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     if (!showBalances) return false;
     const owner = ownerForToken(owners, token);
     if (!owner) return false;
+    const formatted = balanceOf(token);
+    if (formatted != null && formatted !== "") return false;
     if (balanceMode === "sync") return syncIsBalanceLoading?.(token, owner) ?? false;
     const entry = getPayTokenBalance(owner, token.assetId);
-    return entry?.formatted == null && (!entry || entry.status === "loading");
+    return !entry || entry.status === "loading";
   }
 
   const availableChains = useMemo(() => chainsFromTokens(scopedTokens), [scopedTokens]);

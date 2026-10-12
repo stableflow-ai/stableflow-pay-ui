@@ -2,6 +2,8 @@ import { IconChevron } from "@stableflow/pay-ui/icons/chevron";
 import { Skeleton } from "@stableflow/pay-ui/skeleton";
 import { ChainWalletStatus } from "./chain-wallet-status";
 import { cx, fontSans, formatDisplayAmount, thinScrollbar } from "./format";
+import { LazyImage } from "./lazy-image";
+import { DEFAULT_TOKEN_LOGO } from "./logos";
 import type { ChainKind, PayToken } from "./types";
 import { tokenBalanceUsd } from "./utils";
 
@@ -155,7 +157,11 @@ export function TokenRow(props: {
     >
       <span className="flex min-w-0 items-center gap-2.5">
         <span className="relative size-8 shrink-0">
-          <img src={token.logo} alt="" className="size-8 rounded-[12px] object-cover" />
+          <LazyImage
+            src={token.logo}
+            fallbackSrc={DEFAULT_TOKEN_LOGO}
+            className="size-8 rounded-[12px] object-cover"
+          />
           <img
             src={token.chain.logo}
             alt=""
