@@ -1,123 +1,107 @@
-import { IconChevron } from "@stableflow/pay-ui/icons/chevron";
+import { IconDatabase } from "@stableflow/pay-ui/icons/solid/database";
+import { IconDuration } from "@stableflow/pay-ui/icons/solid/duration";
+import { IconTrends } from "@stableflow/pay-ui/icons/outline/trends";
 import { Skeleton } from "@stableflow/pay-ui/skeleton";
-import { ChainWalletStatus } from "./chain-wallet-status";
 import { cx, fontSans, formatDisplayAmount, thinScrollbar } from "./format";
 import { LazyImage } from "./lazy-image";
 import { DEFAULT_TOKEN_LOGO } from "./logos";
-import type { ChainKind, PayToken } from "./types";
+import type { PayToken } from "./types";
 import { tokenBalanceUsd } from "./utils";
+
+export type TokenSectionIcon = "database" | "duration" | "trends";
 
 export type TokenListSection = {
   id: string;
-  title?: string | null;
-  walletKind?: ChainKind | null;
+  title: string;
+  icon: TokenSectionIcon;
   tokens: PayToken[];
-  badgeAssetId?: string | null;
+  skeletonRows?: number;
+  action?: { label: string; onClick: () => void };
 };
-
-export type TokenPaneHeader =
-  | { kind: "back"; title: string; onBack: () => void; walletKind?: ChainKind | null }
-  | { kind: "chain"; title: string; walletKind?: ChainKind | null };
 
 export type TokenPaneProps = {
   sections: TokenListSection[];
   selectedAssetId?: string | null;
-  loading: boolean;
   showBalances?: boolean;
-  showWalletStatus?: boolean;
-  header?: TokenPaneHeader | null;
   getBalance: (token: PayToken) => string | null | undefined;
   isBalanceLoading: (token: PayToken) => boolean;
   onSelectToken: (token: PayToken) => void;
   isTokenDisabled?: (token: PayToken) => boolean;
   rowClassName?: string;
+  emptyLabel?: string | null;
 };
 
 export function TokenPane(props: TokenPaneProps) {
   const {
     sections,
     selectedAssetId,
-    loading,
     showBalances = false,
-    showWalletStatus = true,
-    header = null,
     getBalance,
     isBalanceLoading,
     onSelectToken,
     isTokenDisabled,
     rowClassName,
+    emptyLabel = null,
   } = props;
-  const visibleSections = sections.filter((section) => section.title || section.tokens.length > 0);
-  const hasTokens = sections.some((section) => section.tokens.length > 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-1 flex-col">
-      <div className={cx("min-h-0 flex-1 overflow-y-auto", thinScrollbar)}>
-        <div className="px-2.5 pt-[17px] pb-3">
-          {header ? (
-            <ChainListHeader header={header} showWalletStatus={showWalletStatus} />
-          ) : null}
-          {visibleSections.map((section) => (
-            <section key={section.id} className="mb-2">
-              {section.title ? (
-                <div className="mb-1 flex items-center justify-between gap-2 px-3.5">
-                  <p className={cx("min-w-0 truncate text-sm font-medium text-[#aaa]", fontSans)}>{section.title}</p>
-                  {showWalletStatus && section.walletKind ? <ChainWalletStatus kind={section.walletKind} /> : null}
-                </div>
+    <div className={cx("min-h-0 flex-1 overflow-y-auto", thinScrollbar)}>
+      <div className="px-3 pt-3 pb-3">
+        {sections.map((section) => (
+          <section key={section.id} className="mb-2">
+            {section.title ? (
+            <div className="mb-1 flex items-center justify-between gap-2 px-[13px]">
+              <span className="flex min-w-0 items-center gap-2 text-[#aaa]">
+                <SectionIcon icon={section.icon} />
+                <span className={cx("truncate text-sm font-medium text-[#aaa]", fontSans)}>{section.title}</span>
+              </span>
+              {section.action ? (
+                <button
+                  type="button"
+                  onClick={section.action.onClick}
+                  className={cx("cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-[#aaa]", fontSans)}
+                >
+                  {section.action.label}
+                </button>
               ) : null}
-              {section.tokens.map((token) => (
-                <TokenRow
-                  key={`${section.id}-${token.assetId}`}
-                  token={token}
-                  selected={token.assetId === selectedAssetId}
-                  recent={token.assetId === section.badgeAssetId}
-                  showBalances={showBalances}
-                  formatted={showBalances ? getBalance(token) : null}
-                  loadingBalance={showBalances && isBalanceLoading(token)}
-                  disabled={Boolean(isTokenDisabled?.(token))}
-                  onSelect={() => onSelectToken(token)}
-                  className={rowClassName}
-                />
-              ))}
-            </section>
-          ))}
-          {loading && !hasTokens ? <TokenListSkeleton /> : null}
-          {!loading && !hasTokens ? (
-            <p className={cx("px-3.5 py-4 text-[13px] text-[#606060]", fontSans)}>No tokens found</p>
-          ) : null}
-        </div>
+            </div>
+            ) : null}
+            {section.skeletonRows ? <TokenListSkeleton rows={section.skeletonRows} /> : null}
+            {section.tokens.map((token) => (
+              <TokenRow
+                key={`${section.id}-${token.assetId}`}
+                token={token}
+                selected={token.assetId === selectedAssetId}
+                showBalances={showBalances}
+                formatted={showBalances ? getBalance(token) : null}
+                loadingBalance={showBalances && isBalanceLoading(token)}
+                disabled={Boolean(isTokenDisabled?.(token))}
+                onSelect={() => onSelectToken(token)}
+                className={rowClassName}
+              />
+            ))}
+          </section>
+        ))}
+        {emptyLabel ? (
+          <p className={cx("px-[13px] py-4 text-[13px] text-[#606060]", fontSans)}>{emptyLabel}</p>
+        ) : null}
       </div>
     </div>
   );
 }
 
-function ChainListHeader(props: { header: TokenPaneHeader; showWalletStatus: boolean }) {
-  const { header, showWalletStatus } = props;
-  const walletKind = header.walletKind;
-  return (
-    <div className="mb-1 flex items-center justify-between gap-3 px-3.5">
-      {header.kind === "back" ? (
-        <button
-          type="button"
-          onClick={header.onBack}
-          className={cx("flex min-w-0 cursor-pointer items-center gap-3 border-0 bg-transparent p-0 text-sm font-medium text-[#aaa]", fontSans)}
-        >
-          <IconChevron className="rotate-180 text-[#aaa]" />
-          <span className="truncate">{header.title}</span>
-        </button>
-      ) : (
-        <p className={cx("min-w-0 truncate text-sm font-medium text-[#aaa]", fontSans)}>{header.title}</p>
-      )}
-      {showWalletStatus && walletKind ? <ChainWalletStatus kind={walletKind} /> : null}
-    </div>
-  );
+function SectionIcon(props: { icon: TokenSectionIcon }) {
+  const className = "size-3.5 text-[#aaa]";
+  if (props.icon === "database") return <IconDatabase className={className} />;
+  if (props.icon === "duration") return <IconDuration className={className} />;
+  return <IconTrends className={className} />;
 }
 
-function TokenListSkeleton() {
+export function TokenListSkeleton(props: { rows: number }) {
   return (
     <div aria-hidden>
-      {Array.from({ length: 6 }, (_, index) => (
-        <div key={index} className="flex h-[66px] items-center gap-2.5 px-3.5">
+      {Array.from({ length: props.rows }, (_, index) => (
+        <div key={index} className="flex h-[66px] items-center gap-2.5 px-[13px]">
           <Skeleton className="size-8 shrink-0 rounded-full" />
           <span className="flex min-w-0 flex-1 flex-col gap-1.5">
             <Skeleton className="h-3.5 w-24" />
@@ -132,7 +116,6 @@ function TokenListSkeleton() {
 export function TokenRow(props: {
   token: PayToken;
   selected: boolean;
-  recent: boolean;
   showBalances: boolean;
   formatted: string | null | undefined;
   loadingBalance: boolean;
@@ -140,7 +123,7 @@ export function TokenRow(props: {
   onSelect: () => void;
   className?: string;
 }) {
-  const { token, selected, recent, showBalances, formatted, loadingBalance, disabled, onSelect, className } = props;
+  const { token, selected, showBalances, formatted, loadingBalance, disabled, onSelect, className } = props;
   const usd = showBalances && !loadingBalance && formatted != null ? tokenBalanceUsd(token, formatted) : -1;
 
   return (
@@ -149,7 +132,7 @@ export function TokenRow(props: {
       disabled={disabled}
       onClick={onSelect}
       className={cx(
-        "flex h-[66px] w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border-0 bg-transparent px-3.5 text-left hover:bg-[#f6f6f6]",
+        "flex h-[66px] w-full cursor-pointer items-center justify-between gap-2 rounded-[12px] border-0 bg-transparent px-[13px] text-left hover:bg-[#f6f6f6]",
         selected && "bg-[#f6f6f6]",
         disabled && "cursor-not-allowed opacity-40 hover:bg-transparent",
         className,
@@ -169,14 +152,7 @@ export function TokenRow(props: {
           />
         </span>
         <span className="min-w-0">
-          <span className="flex min-w-0 items-center gap-1.5">
-            <span className={cx("truncate text-sm font-semibold text-black", fontSans)}>{token.symbol}</span>
-            {recent ? (
-              <span className={cx("shrink-0 rounded-[9px] bg-[#06f]/10 px-1.5 text-[10px] font-medium leading-[18px] text-[#06f]", fontSans)}>
-                Recently Used
-              </span>
-            ) : null}
-          </span>
+          <span className={cx("block truncate text-sm font-semibold text-black", fontSans)}>{token.symbol}</span>
           <span className={cx("mt-0.5 block truncate text-xs text-[#606060]", fontSans)}>{token.chain.chainName}</span>
         </span>
       </span>

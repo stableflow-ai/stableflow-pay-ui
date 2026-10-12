@@ -1,6 +1,6 @@
 import type { InputHTMLAttributes } from "react";
-import { IconClose } from "../icons/close";
-import { IconSearch } from "../icons/search";
+import { IconClose } from "../icons/outline/close";
+import { IconSearch } from "../icons/outline/search";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 
@@ -8,15 +8,16 @@ export type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type
   value: string;
   onChange: (value: string) => void;
   inputClassName?: string;
+  iconClassName?: string;
 };
 
 export function SearchInput(props: SearchInputProps) {
-  const { value, onChange, placeholder = "Search", className, inputClassName, disabled, ...restProps } = props;
+  const { value, onChange, placeholder = "Search", className, inputClassName, iconClassName, disabled, ...restProps } = props;
   const hasValue = value.length > 0;
 
   return (
     <label className={cn("relative block w-full", className)}>
-      <IconSearch className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#909090]" />
+      <IconSearch className={cn("pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-[#909090]", iconClassName)} />
       <input
         {...restProps}
         type="text"

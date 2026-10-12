@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { IconLoading } from "../icons/loading";
+import { IconLoading } from "../icons/outline/loading";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 import { BUTTON_SIZE, BUTTON_VARIANT } from "./config";

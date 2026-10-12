@@ -49,11 +49,6 @@ export type PayConfigSourceToken = {
   supportReceive: boolean;
 };
 
-export type PopularTokenRef = {
-  blockchain: string;
-  symbol: string;
-};
-
 export type WalletAccountInput = {
   address?: string | null;
   icon?: string | null;

@@ -22,11 +22,10 @@ Render `TokenSelectDialog` inside `PayWidgetsProvider`. The dialog throws if tha
 | Prop | Role |
 | --- | --- |
 | `tokens` | Flat `PayToken[]`. Each token carries its own `chain`. Chains with no token are hidden. |
-| `loading` | Shows the empty-list skeleton while the host is still loading tokens. |
+| `loading` | While true, payer sections show skeleton rows instead of tokens. |
 | `wallet` | Accounts plus `connect` and `disconnect`. `accounts` is keyed by any chain-kind string. |
 | `readBalances` | Async mode. Called with an owner, chain, and token batch. The widget polls while the dialog is open. |
 | `getBalance`, `isBalanceLoading` | Sync mode. The widget reads balances from these callbacks and does not poll. `getBalance` should change when balances change so the dialog re-renders. |
-| `popularTokens` | `{ blockchain, symbol }` refs for the popular section. |
 | `stableSymbols` | Stablecoin order. Defaults to `USDT`, then `USDC`. |
 | `chainKindLabels` | Display names for chain kinds. Built-in labels are used when a kind is missing. |
 | `onCopyAddress` | Called when the user copies a connected address. |
@@ -50,49 +49,54 @@ const tokens = useMemo(
 
 ## Views
 
-`role="payer"` with a connected wallet opens on the wallet view (Recently Used, Your Tokens, Popular). A payer with no wallet opens on All Networks. `role="receiver"` opens on All. `lockChainKind` opens on that kind's chain, using the same recent-chain rule as before.
+The chain selector defaults to All. `lockChainKind` opens on that kind's chain, using the same recent-chain rule as before. Reopening the dialog resets the chain to All (or the locked chain) and clears both search fields.
 
-| View | Left rail | Right pane |
-| --- | --- | --- |
-| `wallet` | Wallet, funded connected chains, All Networks | Recently Used, Your Tokens, Popular |
-| `all` | All, then every chain by name | Popular, then every token |
-| `rail-chain` | The chain chip | Chain name and wallet status. No back arrow and no slide. |
-| `networks` | All Networks selected | Flat chain list, alphabetical, with a chevron |
-| `network-chain` | All Networks stays selected | Back arrow, chain name, wallet status |
+Search covers every chain while All is selected, and only the selected chain otherwise. A payer keeps the Recently Used cards while searching. Those cards are not filtered by the query. Search results replace the sections under the cards. A receiver has no cards and no section titles.
 
-Payer rail chains are only chains whose kind is connected. EVM chains appear only when they have a balance. They sort by USD, then name. Receiver chains sort by name and do not include All Networks.
+| Payer section | When it shows |
+| --- | --- |
+| Recently Used | Up to 5 cards for the current scope. Hidden for a receiver and when the scope has no history. Stays visible during search. Picking a card records Recently Used only. |
+| Your Tokens | The scope's wallet kind is connected and at least one token has a positive balance. Hidden while those balances are still loading for the first time. |
+| Recent Searches | Up to 5 tokens picked from search results while the query was not empty. Hidden when empty. Clear removes every stored search on All, or only the selected chain's searches. |
+| Trends Token | `TRENDS_TOKENS` that match the scope (`blockchain` + `symbol`, case-insensitive), then the other tokens in that scope. |
 
-Connecting a wallet leaves the current view in place and adds the wallet chip plus that kind's chains. If the current rail chip disappears, a remaining wallet returns to `wallet`; otherwise the view returns to `networks`.
+A receiver shows one flat list of every token in the scope. It does not record token history. It still calls `setLastBlockchain`.
 
-Search replaces the right pane and matches tokens on every chain, not the selected one. Clearing search restores the view.
+Wallet connect, copy, and disconnect stay on `PayWidgetsProvider` and are not rendered.
 
-Only `networks` and `network-chain` slide. Forward: the chain list moves left and fades, the token list enters from the right. Back is the reverse. Reduced motion swaps the panes immediately. Returning to All Networks restores the list scroll position.
+While `loading` is true the payer shows skeleton cards when the scope already has Recently Used records, then section titles with skeleton rows: Your Tokens (2, when a wallet is connected), Recent Searches (2, when that history exists), and Trends Token (6). A row that already has a balance keeps that amount on refresh. The spinner shows only while that row has no balance yet.
 
 ## Sorting
 
-Stablecoins sort before gas tokens, then other symbols. Gas is a native asset (empty address, `native`, or the zero address) or `NEAR` on Near. Within a connected payer chain, tokens with a balance sort by USD, then balances still loading, then the priority above. Receiver lists use that priority without balances. Popular stays on the payer wallet view and on receiver All and receiver chain views.
+Stablecoins sort before gas tokens, then other symbols. Gas is a native asset (empty address, `native`, or the zero address) or `NEAR` on Near. That order is `compareTokensByPriority`. A receiver's flat list uses it. The tokens appended under Trends Token use it on All. On a selected chain they use `sortTokensForChain` (balance order when that chain kind has an address).
 
-Search folds every EVM chain into one EVM-based group. Other chains stay in their own groups. Tokens inside a group follow the chain-list order. Payer groups sort by the matched tokens' USD, then group name. Receiver groups sort by group name.
+Search results are a flat list. A payer sorts them with `sortTokensByBalance`: positive USD high to low, then balances still loading, then zero or unknown. Ties sort by symbol, then chain name. A receiver sorts by symbol, then chain name. An empty result says "No tokens found".
 
-Token icons load when the row enters the viewport. A missing or failed CDN image falls back to `default_icon.png`. A refresh that already has a balance keeps that amount on screen and replaces it when the new value arrives. The spinner shows only while a row has no balance yet.
+The chain menu puts All first, then chains with a blue dot, then the rest by name. Dotted chains sort by USD, then name. A blue dot is payer-only and matches the old rail: an EVM chain needs a connected wallet and a positive balance; any other chain needs only a connected wallet. A chain search with no matches says "No networks found".
+
+Disabled chains (`lockChainKind` or `disabledBlockchains`) use `opacity-40` and `cursor-not-allowed`. All stays selectable. Desktop shows the reason in a tooltip. Below 768px the reason is 12px text under the chain name. Tokens on a locked kind stay in the list and stay disabled.
+
+The All button's 2x2 preview takes `eth` (or the first EVM chain when `eth` is absent), then `near`, `sol`, and `tron`. Fewer than four are filled from the remaining EVM chains by name. Four or fewer chains are all shown.
+
+Token logos in rows, Recently Used cards, and search results use `LazyImage`. A missing or failed image falls back to `default_icon.png`. The image request starts when the logo enters the viewport.
 
 ## Dialog
 
 | Prop | Role |
 | --- | --- |
 | `open`, `onClose` | Visibility. |
-| `onSelect` | Called with `{ token }` when the user picks a row. |
-| `role` | `payer` (default) shows balances. `receiver` hides them. |
+| `onSelect` | Called with `{ token }` when the user picks a card or a row. |
+| `role` | `payer` (default) shows balances and the payer sections. `receiver` hides balances and section titles. |
 | `title` | Defaults to `Select Token`. |
 | `selectedAssetId` | Highlights the current row. |
 | `balanceOwners` | Extra owner addresses merged over the connected wallet. Used when `role` is `payer`. |
 | `allowedBlockchains` | Limits which tokens are shown. `null` shows every token from `tokens`. |
-| `lockChainKind` | Locks the picker to one chain kind. |
+| `lockChainKind` | Locks selectable chains to one chain kind. All stays selectable. |
 | `excludeNative` | Hides native assets. |
 | `disabledBlockchains`, `disabledReason` | Disables those chains and shows the reason. |
 
-Desktop card is 474px wide, 12px radius, `#fdfdfd` with a `#e0e0e0` border. The header is 56px with a bottom border. Search stays in the header on every view; below 768px it sits on its own row under the header. The rail is 76px. Rows are 66px and hover `#f6f6f6`.
+The desktop card is 448px wide, 12px radius, `#fdfdfd`, with a `#e0e0e0` border. The title is 18px semibold black. The title row has no bottom border, and the title and close button sit 24px from the edges. The token search field is in the content, 50px tall, next to a 70px chain button. Below 768px the dialog is a bottom drawer, the chain list opens in a nested bottom drawer titled "Select Network", and the cards use a 5-column grid with an 8px gap and a fixed 72px height.
 
-A connected address shows `IconCopy` before disconnect. Copying calls `onCopyAddress`.
+`wallet.connect`, `wallet.disconnect`, and `onCopyAddress` remain on the provider for a later wallet row. They are not shown in the dialog.
 
-Class slots, merged after the defaults: `className` (dialog card), `titleClassName`, `headerClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `railClassName`, `rowClassName`.
+Class slots, merged after the defaults: `className` (dialog card), `titleClassName`, `headerClassName`, `closeClassName`, `contentClassName`, `searchClassName`, `rowClassName`.

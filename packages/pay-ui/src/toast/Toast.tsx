@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { IconAlert } from "../icons/alert";
-import { IconCheck } from "../icons/check";
-import { IconClose } from "../icons/close";
-import { IconLoading } from "../icons/loading";
+import { IconAlert } from "../icons/outline/alert";
+import { IconCheck } from "../icons/outline/check";
+import { IconClose } from "../icons/outline/close";
+import { IconLoading } from "../icons/outline/loading";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 

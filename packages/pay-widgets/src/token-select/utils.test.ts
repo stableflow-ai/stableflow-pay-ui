@@ -1,19 +1,19 @@
 import { describe, expect, it } from "vitest";
 import type { ChainKind } from "./types";
 import {
+  allChainPreview,
   chainBalanceUsd,
   chainHasBalance,
+  chainMenuOrder,
   chainsFromTokens,
   compareTokensByPriority,
-  groupSearchResults,
   initialChainFilter,
   isGasToken,
   matchesChainFilter,
-  parsePopularTokens,
   payerRailChains,
-  popularTokensForWallets,
   positiveBalanceTokens,
   recentTokensInOrder,
+  searchTokens,
   sortChainsAlpha,
   sortChainsForSidebar,
   sortTokensByBalance,
@@ -22,9 +22,10 @@ import {
   tokenBalanceUsd,
   tokenMatchesSearch,
   tokenPriority,
+  trendTokensIn,
   type SidebarChain,
 } from "./utils";
-import { ALL_CHAIN_FILTER } from "./config";
+import { ALL_CHAIN_FILTER, TRENDS_TOKENS } from "./config";
 
 function chain(blockchain: string, chainName = blockchain): SidebarChain {
   const chainKind: ChainKind = blockchain === "near"
@@ -145,37 +146,6 @@ describe("sortChainsForSidebar", () => {
       getBalanceUsd: () => 100,
     });
     expect(sorted.map((item) => item.blockchain)).toEqual(["eth", "base", "near"]);
-  });
-});
-
-describe("parsePopularTokens", () => {
-  it("returns nothing when unset", () => {
-    expect(parsePopularTokens("")).toEqual([]);
-    expect(parsePopularTokens(undefined)).toEqual([]);
-  });
-
-  it("parses blockchain and symbol pairs and skips invalid parts", () => {
-    expect(parsePopularTokens(" eth:USDT, sol:usdc ,bad, tron:USDT, arb:USDT ")).toEqual([
-      { blockchain: "eth", symbol: "USDT" },
-      { blockchain: "sol", symbol: "USDC" },
-      { blockchain: "tron", symbol: "USDT" },
-      { blockchain: "arb", symbol: "USDT" },
-    ]);
-  });
-});
-
-describe("popularTokensForWallets", () => {
-  const tokens = [
-    { blockchain: "eth", symbol: "USDT", chain: { chainKind: "evm" as const } },
-    { blockchain: "sol", symbol: "USDC", chain: { chainKind: "solana" as const } },
-    { blockchain: "tron", symbol: "USDT", chain: { chainKind: "tron" as const } },
-    { blockchain: "arb", symbol: "USDT", chain: { chainKind: "evm" as const } },
-  ];
-  const configured = parsePopularTokens("eth:USDT,sol:USDC,tron:USDT,arb:USDT");
-
-  it("keeps configured order for connected chains only", () => {
-    const picked = popularTokensForWallets(tokens, configured, (kind) => kind === "evm");
-    expect(picked.map((item) => `${item.blockchain}:${item.symbol}`)).toEqual(["eth:USDT", "arb:USDT"]);
   });
 });
 
@@ -405,35 +375,108 @@ describe("chainsFromTokens", () => {
   });
 });
 
-describe("groupSearchResults", () => {
-  const tokens = [
-    rankedToken("usdt-near", "USDT", "Near", { blockchain: "near", chainKind: "near" }),
-    rankedToken("usdt-base", "USDT", "Base", { blockchain: "base" }),
-    rankedToken("usdt-eth", "USDT", "Ethereum", { blockchain: "eth" }),
-    rankedToken("usdc-eth", "USDC", "Ethereum", { blockchain: "eth" }),
-  ];
-  const usd: Record<string, number> = { "usdt-near": 5, "usdt-base": 20, "usdt-eth": 0, "usdc-eth": 1 };
-
-  it("groups every matching chain for a payer by USD, then sorts tokens like a chain view", () => {
-    const groups = groupSearchResults(tokens, "us", {
-      role: "payer",
-      usdOf: (item) => usd[item.assetId] ?? 0,
-      loadingOf: () => false,
-      hasOwner: (kind) => kind === "evm",
-    });
-    expect(groups.map((group) => group.chainName)).toEqual(["EVM-based", "Near"]);
-    expect(groups[0]?.chainKind).toBe("evm");
-    expect(groups[0]?.tokens.map((item) => item.assetId)).toEqual(["usdt-base", "usdc-eth", "usdt-eth"]);
+describe("allChainPreview", () => {
+  it("shows every chain when there are four or fewer", () => {
+    const chains = [chain("base", "Base"), chain("near", "Near"), chain("sol", "Solana")];
+    expect(allChainPreview(chains).map((item) => item.blockchain)).toEqual(["base", "near", "sol"]);
   });
 
-  it("sorts receiver groups alphabetically and folds EVM chains", () => {
-    const groups = groupSearchResults(tokens, "usdt", {
+  it("uses the first EVM chain when eth is missing", () => {
+    const chains = [
+      chain("base", "Base"),
+      chain("arb", "Arbitrum"),
+      chain("near", "Near"),
+      chain("sol", "Solana"),
+      chain("tron", "Tron"),
+      chain("op", "Optimism"),
+    ];
+    expect(allChainPreview(chains).map((item) => item.blockchain)).toEqual(["base", "near", "sol", "tron"]);
+  });
+
+  it("fills missing preview slots from the remaining EVM chains by name", () => {
+    const chains = [
+      chain("base", "Base"),
+      chain("op", "Optimism"),
+      chain("arb", "Arbitrum"),
+      chain("bsc", "BNB Chain"),
+      chain("pol", "Polygon"),
+    ];
+    expect(allChainPreview(chains).map((item) => item.blockchain)).toEqual(["base", "arb", "bsc", "op"]);
+  });
+});
+
+describe("trendTokensIn", () => {
+  const tokens = [
+    rankedToken("usdt-tron", "USDT", "Tron", { blockchain: "tron", chainKind: "tron" }),
+    rankedToken("usdt-eth", "USDT", "Ethereum", { blockchain: "eth" }),
+    rankedToken("dai-eth", "DAI", "Ethereum", { blockchain: "eth" }),
+    rankedToken("usdc-eth", "usdc", "Ethereum", { blockchain: "eth" }),
+  ];
+
+  it("keeps trend order and appends the rest for All", () => {
+    const picked = trendTokensIn(tokens, {
+      chainFilter: ALL_CHAIN_FILTER,
+      trends: TRENDS_TOKENS,
+      sortRest: (rest) => rest.slice().sort((left, right) => left.symbol.localeCompare(right.symbol)),
+    });
+    expect(picked.map((item) => item.assetId)).toEqual(["usdt-tron", "usdt-eth", "usdc-eth", "dai-eth"]);
+  });
+
+  it("limits trends to the selected chain", () => {
+    const picked = trendTokensIn(tokens, {
+      chainFilter: "eth",
+      trends: TRENDS_TOKENS,
+      sortRest: (rest) => rest,
+    });
+    expect(picked.map((item) => item.assetId)).toEqual(["usdt-eth", "usdc-eth", "dai-eth"]);
+  });
+});
+
+describe("chainMenuOrder", () => {
+  const chains = [
+    chain("op", "Optimism"),
+    chain("eth", "Ethereum"),
+    chain("base", "Base"),
+    chain("near", "Near"),
+  ];
+  const tokens = [
+    token("usdt-eth", "USDT", "Ethereum", { blockchain: "eth", price: 1 }),
+    token("usdc-base", "USDC", "Base", { blockchain: "base", price: 1 }),
+  ];
+
+  it("puts dotted chains first by USD, then the rest by name", () => {
+    const ordered = chainMenuOrder(chains, tokens, {
+      dotted: new Set(["eth", "base"]),
+      showBalances: true,
+      getBalanceUsd: (item) => (item.assetId === "usdc-base" ? 50 : item.assetId === "usdt-eth" ? 10 : 0),
+    });
+    expect(ordered.map((item) => item.blockchain)).toEqual(["base", "eth", "near", "op"]);
+  });
+});
+
+describe("searchTokens", () => {
+  const tokens = [
+    rankedToken("usdt-near", "USDT", "Near", { blockchain: "near", chainKind: "near" }),
+    rankedToken("usdt-eth", "USDT", "Ethereum", { blockchain: "eth" }),
+    rankedToken("usdc-base", "USDC", "Base", { blockchain: "base" }),
+  ];
+  const usd: Record<string, number> = { "usdt-near": 5, "usdt-eth": 20, "usdc-base": 0 };
+
+  it("sorts a payer by balance", () => {
+    const found = searchTokens(tokens, "us", {
+      role: "payer",
+      usdOf: (item) => usd[item.assetId] ?? -1,
+      loadingOf: () => false,
+    });
+    expect(found.map((item) => item.assetId)).toEqual(["usdt-eth", "usdt-near", "usdc-base"]);
+  });
+
+  it("sorts a receiver by symbol, then chain name", () => {
+    const found = searchTokens(tokens, "usdt", {
       role: "receiver",
       usdOf: () => 0,
       loadingOf: () => false,
-      hasOwner: () => false,
     });
-    expect(groups.map((group) => group.chainName)).toEqual(["EVM-based", "Near"]);
-    expect(groups[0]?.tokens.map((item) => item.assetId)).toEqual(["usdt-base", "usdt-eth"]);
+    expect(found.map((item) => item.assetId)).toEqual(["usdt-eth", "usdt-near"]);
   });
 });

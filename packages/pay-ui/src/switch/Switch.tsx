@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, type HTMLMotionProps } from "motion/react";
-import { IconLoading } from "../icons/loading";
+import { IconLoading } from "../icons/outline/loading";
 import { cn } from "../lib/cn";
 import { SWITCH_THUMB_TRAVEL_PX } from "./config";
 

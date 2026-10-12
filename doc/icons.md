@@ -3,25 +3,22 @@
 Import one icon at a time:
 
 ```ts
-import { IconClose } from "@stableflow/pay-ui/icons/close";
+import { IconClose } from "@stableflow/pay-ui/icons/outline/close";
+import { IconLock } from "@stableflow/pay-ui/icons/solid/lock";
 ```
+
+`icons/types` stays at `@stableflow/pay-ui/icons/types`.
 
 Icons are inline SVG elements with `currentColor` and the `sfp-icon` class. Size and color come from `className` and `style`.
 
-The set started as the union of the v2 and v3 icon directories. When the same file differed, the v2 geometry was kept and SVG attributes were written as React camelCase props.
+Outline and solid are visual styles. The choice does not follow whether the SVG uses `fill` or `stroke`. When the same glyph exists in both styles, the outline export adds an `Outline` suffix (`IconDatabaseOutline`, `IconDurationOutline`).
 
-Files whose geometry differed from v3: alert, duration, lock, overview.
-
-Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `IconPayment` (keep `IconUp`), `IconSettings` (keep `IconSetting`), and `IconProcessing` (keep `IconLoading`). Status marks that are a glyph plus a colored shape stay out of the set: `IconBack`, `IconFieldError`, `IconPayoutPending`, `IconPayoutFailed`, `IconPayoutPaid`, and `IconSuccess`.
-
-`duration` exports both `IconDuration` and `IconDuration2`. `alert-circle` exports `IconAlertCircle`. `member` exports `IconMember`.
-
-## Names
+## Outline
 
 - `alert`
-- `alert-circle`
 - `all-networks`
 - `arrow-down`
+- `back`
 - `bonus`
 - `book`
 - `calendar`
@@ -32,33 +29,29 @@ Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `Icon
 - `cloud`
 - `code`
 - `copy`
-- `database`
+- `database` (`IconDatabaseOutline`)
 - `delete`
 - `down`
 - `download`
-- `duration`
+- `duration` (`IconDurationOutline`)
 - `email`
 - `expense`
 - `expense-user`
-- `eye`
-- `fee`
+- `eye-hidden` (`IconEyeHidden`)
 - `flask`
-- `google`
 - `grants`
 - `guard`
 - `history`
 - `import-file`
 - `key`
 - `kol-mkt`
-- `link`
+- `link` (`IconLink`, `IconOutLink`, `IconExportLink`)
 - `loading`
-- `lock`
 - `logout`
 - `member`
 - `meno`
 - `menu`
-- `money`
-- `node`
+- `more`
 - `office`
 - `operations`
 - `otc-treasury`
@@ -66,13 +59,13 @@ Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `Icon
 - `overview`
 - `pay`
 - `payroll`
-- `pen`
 - `plus`
 - `private`
+- `processing`
 - `procurement`
 - `question`
 - `receipt`
-- `records`
+- `records` (`IconRecords`, `IconRecords2`)
 - `refresh`
 - `reimbursement`
 - `remove`
@@ -80,11 +73,29 @@ Duplicate glyphs were dropped: `IconCheck2`, `IconMore` (keep `IconMenu`), `Icon
 - `reset-password`
 - `search`
 - `setting`
+- `settings`
 - `shield`
 - `support`
 - `swap`
 - `team`
-- `to-right`
-- `up`
+- `to-right` (`Icon2Right`)
+- `trends` (`IconTrends`)
+- `up` (`IconUp`, `IconBatchUp`)
 - `wallet`
 - `webhooks`
+
+## Solid
+
+- `alert-circle`
+- `database` (`IconDatabase`)
+- `duration` (`IconDuration`, `IconDuration2`)
+- `eye` (`IconEye`)
+- `fee`
+- `field-error`
+- `google`
+- `lock`
+- `money`
+- `node`
+- `payout-status` (`IconPayoutPending`, `IconPayoutFailed`, `IconPayoutPaid`)
+- `pen`
+- `success`

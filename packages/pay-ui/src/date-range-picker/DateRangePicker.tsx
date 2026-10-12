@@ -12,7 +12,7 @@ import {
   startOfMonth,
   startOfWeek,
 } from "date-fns";
-import { IconArrowDown } from "../icons/arrow-down";
+import { IconArrowDown } from "../icons/outline/arrow-down";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 import { floatingLayerZIndex } from "../overlay/stack";

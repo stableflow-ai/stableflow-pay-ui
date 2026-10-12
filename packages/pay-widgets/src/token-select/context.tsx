@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { createContext, useContext } from "react";
 import { clearPayTokenBalances, configureBalanceReaders, setBalanceTokens } from "./balances";
 import { DEFAULT_STABLE_SYMBOLS } from "./config";
-import type { PayToken, PayWallet, PopularTokenRef, ReadBalances } from "./types";
+import type { PayToken, PayWallet, ReadBalances } from "./types";
 
 export type PayBalanceMode = "async" | "sync" | "none";
 
@@ -10,7 +10,6 @@ type PayWidgetsContextValue = {
   tokens: PayToken[];
   loading: boolean;
   wallet: PayWallet;
-  popularTokens: PopularTokenRef[];
   stableSymbols: string[];
   chainKindLabels: Record<string, string>;
   onCopyAddress?: (address: string) => void;
@@ -28,7 +27,6 @@ export type PayWidgetsProviderProps = {
   readBalances?: ReadBalances;
   getBalance?: (token: PayToken, owner: string) => string | null | undefined;
   isBalanceLoading?: (token: PayToken, owner: string) => boolean;
-  popularTokens?: PopularTokenRef[];
   stableSymbols?: string[];
   chainKindLabels?: Record<string, string>;
   onCopyAddress?: (address: string) => void;
@@ -55,7 +53,6 @@ export function PayWidgetsProvider(props: PayWidgetsProviderProps) {
   const {
     tokens,
     loading = false,
-    popularTokens = [],
     wallet,
     readBalances,
     getBalance,
@@ -90,7 +87,6 @@ export function PayWidgetsProvider(props: PayWidgetsProviderProps) {
     tokens,
     loading,
     wallet,
-    popularTokens,
     stableSymbols,
     chainKindLabels,
     onCopyAddress,

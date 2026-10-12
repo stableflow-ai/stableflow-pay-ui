@@ -16,7 +16,7 @@ Code, comments, identifiers, user-facing copy, and documentation are English onl
 - Class names stay in the component as complete Tailwind string literals. Do not put class strings in `config.ts`, and do not build them by concatenation.
 - A public component exports a subpath `@stableflow/pay-ui/<name>`.
 - Inside `pay-ui`, import icons and sibling components by relative path.
-- `pay-widgets` and the demo import `@stableflow/pay-ui/<name>` or `@stableflow/pay-ui/icons/<name>`.
+- `pay-widgets` and the demo import `@stableflow/pay-ui/<name>` or `@stableflow/pay-ui/icons/outline/<name>` or `@stableflow/pay-ui/icons/solid/<name>`.
 - `overlay` is internal. Feature code and widgets should not add new imports from `@stableflow/pay-ui/overlay`.
 
 Every add, change, or removal of a public component or widget ships documentation in the same change. Do not leave the docs for a follow-up. A prop, slot, default class, or behavior change counts. A comment-only edit does not.
@@ -37,8 +37,9 @@ UI components and widgets use different docs. Do not put a widget page under `do
 
 ## Icons
 
-- Icons live only in `packages/pay-ui/src/icons/`.
-- Each icon is `@stableflow/pay-ui/icons/<file-name>` and exports `IconXxx`.
+- Icons live only in `packages/pay-ui/src/icons/outline/` and `packages/pay-ui/src/icons/solid/`. `icons/types` stays at `packages/pay-ui/src/icons/types.tsx`.
+- Each icon is `@stableflow/pay-ui/icons/outline/<file-name>` or `@stableflow/pay-ui/icons/solid/<file-name>` and exports `IconXxx`.
+- Style is a visual choice, not whether the SVG uses `fill` or `stroke`. When both styles exist, the outline export adds an `Outline` suffix.
 - Do not add an export that re-exports every icon.
 - New icons are inline SVG, `currentColor`, root class `sfp-icon`.
 - Record the icon in `doc/icons.md` and on the demo icons page.

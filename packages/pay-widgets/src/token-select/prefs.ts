@@ -1,22 +1,40 @@
 import { useSyncExternalStore } from "react";
 import {
-  MAX_RECENT_ASSETS,
   MAX_RECENT_BLOCKCHAINS,
+  MAX_RECENT_HISTORY,
   TOKEN_SELECT_PREFS_STORAGE_KEY,
   TOKEN_SELECT_PREFS_VERSION,
 } from "./config";
 
 export type TokenSelectPrefs = {
   recentAssetIds: string[];
+  recentSearchAssetIds: string[];
   recentBlockchains: string[];
 };
 
-const EMPTY_PREFS: TokenSelectPrefs = { recentAssetIds: [], recentBlockchains: [] };
+const EMPTY_PREFS: TokenSelectPrefs = {
+  recentAssetIds: [],
+  recentSearchAssetIds: [],
+  recentBlockchains: [],
+};
 
-export function rememberRecentAsset(recent: string[], assetId: string): string[] {
+function rememberId(recent: string[], assetId: string, max: number): string[] {
   const id = assetId.trim();
   if (!id) return recent;
-  return [id, ...recent.filter((item) => item !== id)].slice(0, MAX_RECENT_ASSETS);
+  return [id, ...recent.filter((item) => item !== id)].slice(0, max);
+}
+
+export function rememberRecentAsset(recent: string[], assetId: string): string[] {
+  return rememberId(recent, assetId, MAX_RECENT_HISTORY);
+}
+
+export function rememberRecentSearch(recent: string[], assetId: string): string[] {
+  return rememberId(recent, assetId, MAX_RECENT_HISTORY);
+}
+
+export function withoutAssetIds(recent: string[], assetIds: readonly string[]): string[] {
+  const drop = new Set(assetIds);
+  return recent.filter((id) => !drop.has(id));
 }
 
 export function rememberRecentBlockchain(recent: string[], blockchain: string): string[] {
@@ -25,20 +43,29 @@ export function rememberRecentBlockchain(recent: string[], blockchain: string): 
   return [code, ...recent.filter((item) => item !== code)].slice(0, MAX_RECENT_BLOCKCHAINS);
 }
 
+function cleanIds(value: unknown, max: number): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((id) => typeof id === "string" && id.trim()).slice(0, max);
+}
+
 export function migrateTokenSelectPrefs(persisted: unknown, version: number): TokenSelectPrefs {
   const state = (persisted ?? {}) as {
     lastAssetId?: string | null;
     lastBlockchain?: string | null;
     recentAssetIds?: string[];
+    recentSearchAssetIds?: string[];
     recentBlockchains?: string[];
   };
   const recentBlockchains = version >= 1
-    ? (Array.isArray(state.recentBlockchains) ? state.recentBlockchains : [])
+    ? cleanIds(state.recentBlockchains, MAX_RECENT_BLOCKCHAINS)
     : (typeof state.lastBlockchain === "string" && state.lastBlockchain ? [state.lastBlockchain] : []);
-  const recentAssetIds = version >= TOKEN_SELECT_PREFS_VERSION && Array.isArray(state.recentAssetIds)
-    ? state.recentAssetIds.filter((id) => typeof id === "string" && id.trim()).slice(0, MAX_RECENT_ASSETS)
+  const recentAssetIds = version >= 2 && Array.isArray(state.recentAssetIds)
+    ? cleanIds(state.recentAssetIds, MAX_RECENT_HISTORY)
     : (typeof state.lastAssetId === "string" && state.lastAssetId ? [state.lastAssetId] : []);
-  return { recentAssetIds, recentBlockchains };
+  const recentSearchAssetIds = version >= TOKEN_SELECT_PREFS_VERSION
+    ? cleanIds(state.recentSearchAssetIds, MAX_RECENT_HISTORY)
+    : [];
+  return { recentAssetIds, recentSearchAssetIds, recentBlockchains };
 }
 
 function readStorage(): TokenSelectPrefs {
@@ -83,8 +110,23 @@ export function getTokenSelectPrefs(): TokenSelectPrefs {
 
 export function setLastToken(assetId: string, blockchain: string) {
   emit({
+    ...prefs,
     recentAssetIds: rememberRecentAsset(prefs.recentAssetIds, assetId),
     recentBlockchains: rememberRecentBlockchain(prefs.recentBlockchains, blockchain),
+  });
+}
+
+export function setRecentSearch(assetId: string) {
+  emit({
+    ...prefs,
+    recentSearchAssetIds: rememberRecentSearch(prefs.recentSearchAssetIds, assetId),
+  });
+}
+
+export function removeRecentSearches(assetIds: readonly string[]) {
+  emit({
+    ...prefs,
+    recentSearchAssetIds: withoutAssetIds(prefs.recentSearchAssetIds, assetIds),
   });
 }
 

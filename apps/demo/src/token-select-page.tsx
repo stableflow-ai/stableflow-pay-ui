@@ -11,11 +11,6 @@ import {
   type TokenSelectRole,
 } from "@stableflow/pay-widgets/token-select";
 
-const POPULAR = [
-  { blockchain: "eth", symbol: "USDT" },
-  { blockchain: "sol", symbol: "USDC" },
-];
-
 const DEMO_ADDRESSES: Record<string, string> = {
   evm: "0x1111111111111111111111111111111111111111",
   near: "demo.token-select.near",
@@ -46,6 +41,7 @@ export function TokenSelectPage() {
   const [accounts, setAccounts] = useState<PayWallet["accounts"]>({
     evm: { address: DEMO_ADDRESSES.evm, canDisconnect: true },
   });
+  const [simulateLoading, setSimulateLoading] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
@@ -98,8 +94,7 @@ export function TokenSelectPage() {
   return (
     <PayWidgetsProvider
       tokens={tokens}
-      loading={loading}
-      popularTokens={POPULAR}
+      loading={loading || simulateLoading}
       wallet={wallet}
       readBalances={balanceMode === "async" ? readBalances : undefined}
       getBalance={balanceMode === "sync" ? (token) => syncBalance(token) : undefined}
@@ -115,6 +110,9 @@ export function TokenSelectPage() {
           Balances: {balanceMode}
         </Button>
         <Button onClick={() => setRole((value) => (value === "payer" ? "receiver" : "payer"))}>Role: {role}</Button>
+        <Button onClick={() => setSimulateLoading((value) => !value)}>
+          Simulate loading: {simulateLoading ? "on" : "off"}
+        </Button>
       </div>
       <TokenSelectExamples
         notice={notice}

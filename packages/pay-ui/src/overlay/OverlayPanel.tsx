@@ -1,5 +1,5 @@
 import { useEffect, useId, type CSSProperties, type ReactNode } from "react";
-import { IconClose } from "../icons/close";
+import { IconClose } from "../icons/outline/close";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 import { Card } from "../card/Card";

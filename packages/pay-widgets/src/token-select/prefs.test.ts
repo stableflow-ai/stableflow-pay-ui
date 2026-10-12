@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { MAX_RECENT_ASSETS, MAX_RECENT_BLOCKCHAINS } from "./config";
+import { MAX_RECENT_BLOCKCHAINS, MAX_RECENT_HISTORY } from "./config";
 import { mapPayConfigSource, normalizePayConfig } from "./pay-config";
 import { chainsFromTokens } from "./utils";
-import { migrateTokenSelectPrefs, rememberRecentAsset, rememberRecentBlockchain } from "./prefs";
+import {
+  migrateTokenSelectPrefs,
+  rememberRecentAsset,
+  rememberRecentBlockchain,
+  rememberRecentSearch,
+  withoutAssetIds,
+} from "./prefs";
 
 describe("rememberRecentAsset", () => {
   it("drops empty ids and caps the list", () => {
     expect(rememberRecentAsset(["usdt-eth"], "  ")).toEqual(["usdt-eth"]);
-    expect(rememberRecentAsset(["a", "b"], "c").slice(0, MAX_RECENT_ASSETS)).toHaveLength(3);
+    const stored = Array.from({ length: MAX_RECENT_HISTORY }, (_, index) => `id-${index}`);
+    expect(rememberRecentAsset(stored, "fresh")).toHaveLength(MAX_RECENT_HISTORY);
+    expect(rememberRecentAsset(stored, "fresh")[0]).toBe("fresh");
   });
 });
 
@@ -25,8 +33,45 @@ describe("migrateTokenSelectPrefs", () => {
   it("lifts a single last token and last chain from v0", () => {
     expect(migrateTokenSelectPrefs({ lastAssetId: "usdt-eth", lastBlockchain: "sol" }, 0)).toEqual({
       recentAssetIds: ["usdt-eth"],
+      recentSearchAssetIds: [],
       recentBlockchains: ["sol"],
     });
+  });
+
+  it("keeps v2 recently used ids and starts recent searches empty", () => {
+    expect(migrateTokenSelectPrefs({
+      recentAssetIds: ["usdt-eth", "usdc-sol"],
+      recentBlockchains: ["eth"],
+    }, 2)).toEqual({
+      recentAssetIds: ["usdt-eth", "usdc-sol"],
+      recentSearchAssetIds: [],
+      recentBlockchains: ["eth"],
+    });
+  });
+
+  it("keeps v3 recent searches and caps stored history at 50", () => {
+    const ids = Array.from({ length: 60 }, (_, index) => `id-${index}`);
+    const migrated = migrateTokenSelectPrefs({
+      recentAssetIds: ids,
+      recentSearchAssetIds: ids,
+      recentBlockchains: ["eth"],
+    }, 3);
+    expect(migrated.recentAssetIds).toHaveLength(MAX_RECENT_HISTORY);
+    expect(migrated.recentSearchAssetIds).toHaveLength(MAX_RECENT_HISTORY);
+  });
+});
+
+describe("recent searches", () => {
+  it("dedupes and caps stored searches", () => {
+    const stored = Array.from({ length: MAX_RECENT_HISTORY }, (_, index) => `id-${index}`);
+    const next = rememberRecentSearch(stored, "id-10");
+    expect(next).toHaveLength(MAX_RECENT_HISTORY);
+    expect(next[0]).toBe("id-10");
+    expect(next.filter((id) => id === "id-10")).toHaveLength(1);
+  });
+
+  it("removes only the requested search ids", () => {
+    expect(withoutAssetIds(["a", "b", "c"], ["b", "missing"])).toEqual(["a", "c"]);
   });
 });
 

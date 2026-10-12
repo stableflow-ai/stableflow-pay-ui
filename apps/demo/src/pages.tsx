@@ -162,6 +162,14 @@ export function SearchInputPage() {
   return (
     <Page title="Search input">
       <SearchInput value={value} onChange={setValue} placeholder="Search" inputClassName="bg-[#f6f6f6]" />
+      <SearchInput
+        value={value}
+        onChange={setValue}
+        placeholder="search or paste address"
+        className="mt-3"
+        iconClassName="size-[19px]"
+        inputClassName="h-[50px] bg-[#f6f6f6]"
+      />
     </Page>
   );
 }

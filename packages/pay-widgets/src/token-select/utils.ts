@@ -1,5 +1,5 @@
-import { ALL_CHAIN_FILTER, DEFAULT_STABLE_SYMBOLS } from "./config";
-import type { ChainKind, PayChain, PayToken, PopularTokenRef } from "./types";
+import { ALL_CHAIN_FILTER, ALL_CHAIN_PREVIEW_BLOCKCHAINS, DEFAULT_STABLE_SYMBOLS, TRENDS_TOKENS } from "./config";
+import type { ChainKind, PayChain, PayToken, TokenSelectRole } from "./types";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
@@ -75,42 +75,6 @@ export function chainBalanceUsd<T extends Pick<PayToken, "blockchain">>(
     if (usd > 0) total += usd;
   }
   return total;
-}
-
-export type { PopularTokenRef };
-export function parsePopularTokens(raw: string | null | undefined): PopularTokenRef[] {
-  if (!raw?.trim()) return [];
-  const refs: PopularTokenRef[] = [];
-  for (const part of raw.split(",")) {
-    const trimmed = part.trim();
-    const colon = trimmed.indexOf(":");
-    if (colon <= 0 || colon >= trimmed.length - 1) continue;
-    const blockchain = trimmed.slice(0, colon).trim().toLowerCase();
-    const symbol = trimmed.slice(colon + 1).trim();
-    if (!blockchain || !symbol || symbol.includes(":")) continue;
-    refs.push({ blockchain, symbol: symbol.toUpperCase() });
-  }
-  return refs;
-}
-
-export function popularTokensForWallets<T extends {
-  blockchain: string;
-  symbol: string;
-  chain: { chainKind: ChainKind };
-}>(
-  tokens: T[],
-  configured: readonly PopularTokenRef[],
-  isChainConnected: (chainKind: ChainKind) => boolean,
-): T[] {
-  const result: T[] = [];
-  for (const ref of configured) {
-    const token = tokens.find((item) => (
-      item.blockchain === ref.blockchain && item.symbol.toUpperCase() === ref.symbol
-    ));
-    if (!token || !isChainConnected(token.chain.chainKind)) continue;
-    result.push(token);
-  }
-  return result;
 }
 
 export function sortChainsAlpha<T extends { chainName: string }>(chains: readonly T[]): T[] {
@@ -307,74 +271,102 @@ export function sortTokensForChain<T extends {
   });
 }
 
-const EVM_SEARCH_GROUP = "evm";
-const EVM_SEARCH_GROUP_NAME = "EVM-based";
-
-export type SearchResultGroup<T> = {
+export type TrendTokenRef = {
   blockchain: string;
-  chainName: string;
-  chainKind: string;
-  tokens: T[];
+  symbol: string;
 };
 
-export function groupSearchResults<T extends {
-  blockchain: string;
+export function trendTokensIn<T extends { blockchain: string; symbol: string }>(
+  tokens: readonly T[],
+  options: {
+    chainFilter: string;
+    sortRest: (tokens: T[]) => T[];
+    trends?: readonly TrendTokenRef[];
+  },
+): T[] {
+  const trends = options.trends ?? TRENDS_TOKENS;
+  const inScope = tokens.filter((token) => matchesChainFilter(token, options.chainFilter));
+  const used = new Set<T>();
+  const head: T[] = [];
+  for (const ref of trends) {
+    if (
+      options.chainFilter !== ALL_CHAIN_FILTER
+      && ref.blockchain.toLowerCase() !== options.chainFilter.toLowerCase()
+    ) continue;
+    const match = inScope.find((token) => (
+      !used.has(token)
+      && token.blockchain.toLowerCase() === ref.blockchain.toLowerCase()
+      && token.symbol.toLowerCase() === ref.symbol.toLowerCase()
+    ));
+    if (!match) continue;
+    used.add(match);
+    head.push(match);
+  }
+  return [...head, ...options.sortRest(inScope.filter((token) => !used.has(token)))];
+}
+
+/** Preview logos for the All chain button. Four or fewer chains are all shown. */
+export function allChainPreview<T extends SidebarChain>(chains: readonly T[]): T[] {
+  if (chains.length <= 4) return chains.slice();
+  const byCode = new Map(chains.map((chain) => [chain.blockchain.toLowerCase(), chain]));
+  const used = new Set<string>();
+  const picked: T[] = [];
+  const take = (chain: T | undefined) => {
+    if (!chain || picked.length >= 4) return;
+    const code = chain.blockchain.toLowerCase();
+    if (used.has(code)) return;
+    used.add(code);
+    picked.push(chain);
+  };
+  const eth = byCode.get(ALL_CHAIN_PREVIEW_BLOCKCHAINS[0]);
+  if (eth) take(eth);
+  else take(chains.find((chain) => chain.chainKind === "evm"));
+  take(byCode.get("near"));
+  take(byCode.get("sol"));
+  take(byCode.get("tron"));
+  const fill = chains
+    .filter((chain) => chain.chainKind === "evm" && !used.has(chain.blockchain.toLowerCase()))
+    .slice()
+    .sort((left, right) => left.chainName.localeCompare(right.chainName));
+  for (const chain of fill) take(chain);
+  return picked;
+}
+
+/** Dotted chains first (USD, then name), then the rest by name. All is not included. */
+export function chainMenuOrder<TChain extends SidebarChain, TToken extends { blockchain: string }>(
+  chains: readonly TChain[],
+  tokens: readonly TToken[],
+  options: {
+    dotted: ReadonlySet<string>;
+    showBalances: boolean;
+    getBalanceUsd: (token: TToken) => number;
+  },
+): TChain[] {
+  const dotted = chains.filter((chain) => options.dotted.has(chain.blockchain));
+  const rest = chains.filter((chain) => !options.dotted.has(chain.blockchain));
+  return [
+    ...sortChainsForSidebar(dotted, [...tokens], options) as TChain[],
+    ...sortChainsAlpha(rest),
+  ];
+}
+
+export function searchTokens<T extends {
   symbol: string;
   providerSymbol: string;
   contractAddress?: string | null;
-  chain: { chainName: string; chainKind: string };
+  chain: { chainName: string };
 }>(
   tokens: readonly T[],
   query: string,
   options: {
-    role: "payer" | "receiver";
+    role: TokenSelectRole;
     usdOf: (token: T) => number;
     loadingOf: (token: T) => boolean;
-    hasOwner: (chainKind: string) => boolean;
-    stableSymbols?: readonly string[];
   },
-): SearchResultGroup<T>[] {
+): T[] {
   const matched = tokens.filter((token) => tokenMatchesSearch(token, query));
-  const groups = new Map<string, T[]>();
-  for (const token of matched) {
-    const key = token.chain.chainKind === EVM_SEARCH_GROUP ? EVM_SEARCH_GROUP : token.blockchain;
-    const list = groups.get(key) ?? [];
-    list.push(token);
-    groups.set(key, list);
-  }
-  const stableSymbols = options.stableSymbols ?? DEFAULT_STABLE_SYMBOLS;
-  const built = Array.from(groups.entries()).map(([key, groupTokens]) => {
-    const chain = groupTokens[0].chain;
-    const folded = key === EVM_SEARCH_GROUP;
-    const sorted = options.role === "payer"
-      ? sortTokensForChain(groupTokens, {
-        withBalances: options.hasOwner(chain.chainKind),
-        usdOf: options.usdOf,
-        loadingOf: options.loadingOf,
-        stableSymbols,
-      })
-      : groupTokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
-    return {
-      blockchain: folded ? EVM_SEARCH_GROUP : key,
-      chainName: folded ? EVM_SEARCH_GROUP_NAME : chain.chainName,
-      chainKind: chain.chainKind,
-      tokens: sorted,
-      usd: sorted.reduce((total, token) => {
-        const usd = options.usdOf(token);
-        return usd > 0 ? total + usd : total;
-      }, 0),
-    };
-  });
-  built.sort((left, right) => {
-    if (options.role === "payer" && right.usd !== left.usd) return right.usd - left.usd;
-    return left.chainName.localeCompare(right.chainName);
-  });
-  return built.map(({ blockchain, chainName, chainKind, tokens: groupTokens }) => ({
-    blockchain,
-    chainName,
-    chainKind,
-    tokens: groupTokens,
-  }));
+  if (options.role === "payer") return sortTokensByBalance(matched, options.usdOf, options.loadingOf);
+  return sortTokensBySymbol(matched);
 }
 
 export function recentTokensInOrder<T extends { assetId: string }>(

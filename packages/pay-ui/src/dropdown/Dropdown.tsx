@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { IconArrowDown } from "../icons/arrow-down";
-import { IconLoading } from "../icons/loading";
+import { IconArrowDown } from "../icons/outline/arrow-down";
+import { IconLoading } from "../icons/outline/loading";
 import { cn } from "../lib/cn";
 import { fontSans } from "../lib/font";
 import { floatingLayerZIndex } from "../overlay/stack";

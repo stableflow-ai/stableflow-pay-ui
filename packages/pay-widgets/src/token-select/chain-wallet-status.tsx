@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
-import { IconCopy } from "@stableflow/pay-ui/icons/copy";
-import { IconLogout } from "@stableflow/pay-ui/icons/logout";
+import { IconCopy } from "@stableflow/pay-ui/icons/outline/copy";
+import { IconLogout } from "@stableflow/pay-ui/icons/outline/logout";
 import { usePayWidgets } from "./context";
 import { cx, fontSans, formatAddress } from "./format";
 import type { ChainKind } from "./types";

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog } from "@stableflow/pay-ui/dialog";
 import { SearchInput } from "@stableflow/pay-ui/search-input";
 import {
@@ -7,44 +7,45 @@ import {
   getPayTokenBalances,
   subscribePayTokenBalances,
 } from "./balances";
-import { ALL_CHAIN_FILTER, POPULAR_SECTION_TITLE, TOKEN_BALANCE_POLL_MS } from "./config";
-import { usePayWidgets } from "./context";
-import { ChainPane } from "./chain-pane";
-import { cx, fontSans } from "./format";
-import { NetworkRail, type RailSelection } from "./network-rail";
-import { PaneTransition } from "./pane-transition";
-import { getTokenSelectPrefs, setLastBlockchain, setLastToken, useTokenSelectPrefs } from "./prefs";
-import { SearchResults } from "./search-results";
-import { TokenPane, type TokenListSection, type TokenPaneHeader } from "./token-pane";
-import { ownerKey, type ChainKind, type ChainOwners, type PayChain, type PayToken, type TokenSelectRole } from "./types";
 import {
+  ALL_CHAIN_FILTER,
+  MAX_RECENT_SEARCHES,
+  MAX_RECENTLY_USED,
+  RECENT_SEARCHES_TITLE,
+  TOKEN_BALANCE_POLL_MS,
+  TRENDS_TOKEN_TITLE,
+  YOUR_TOKENS_TITLE,
+} from "./config";
+import { ChainSelect } from "./chain-select";
+import { usePayWidgets } from "./context";
+import { cx, fontSans } from "./format";
+import { getTokenSelectPrefs, removeRecentSearches, setLastBlockchain, setLastToken, setRecentSearch, useTokenSelectPrefs } from "./prefs";
+import { RecentTileSkeletons, RecentTiles } from "./recent-tiles";
+import { SearchResults } from "./search-results";
+import { TokenListSkeleton, TokenPane, type TokenListSection } from "./token-pane";
+import { ownerKey, type ChainKind, type ChainOwners, type PayToken, type TokenSelectRole } from "./types";
+import {
+  allChainPreview,
   chainHasBalance,
+  chainMenuOrder,
   chainsFromTokens,
-  groupSearchResults,
+  compareTokensByPriority,
   initialChainFilter,
   isBlockchainDisabled,
   isChainKindLocked,
+  matchesChainFilter,
   payerRailChains,
-  popularTokensForWallets,
   positiveBalanceTokens,
   recentTokensInOrder,
-  sortChainsAlpha,
-  sortChainsForSidebar,
+  searchTokens,
   sortTokensForChain,
-  compareTokensByPriority,
   tokenBalanceUsd,
+  trendTokensIn,
 } from "./utils";
 
 export type TokenSelectSelection = {
   token: PayToken;
 };
-
-export type PaneView =
-  | { kind: "wallet" }
-  | { kind: "all" }
-  | { kind: "rail-chain"; blockchain: string }
-  | { kind: "networks" }
-  | { kind: "network-chain"; blockchain: string };
 
 export type TokenSelectDialogProps = {
   open: boolean;
@@ -65,11 +66,11 @@ export type TokenSelectDialogProps = {
   closeClassName?: string;
   contentClassName?: string;
   searchClassName?: string;
-  railClassName?: string;
   rowClassName?: string;
 };
 
-const SEARCH_INPUT_CLASS = "h-[36px] rounded-[18px] border-[#e3e3e3] bg-[#f6f6f6] text-sm placeholder:text-black/30";
+const TOKEN_SEARCH_CLASS = "h-[50px] rounded-[12px] border-[#e3e3e3] bg-[#f6f6f6] pl-[43px] text-sm placeholder:text-black/30";
+const TOKEN_SEARCH_ICON_CLASS = "left-4 size-[19px] text-black";
 
 function ownerForToken(owners: ChainOwners, token: PayToken): string | null {
   return owners[token.chain.chainKind] ?? null;
@@ -82,17 +83,6 @@ function hasAnyOwner(owners: ChainOwners): boolean {
 function isNativeToken(token: PayToken): boolean {
   const addr = String(token.contractAddress || "").trim().toLowerCase();
   return !addr || addr === "native" || addr === "0x0000000000000000000000000000000000000000";
-}
-
-function railSelection(view: PaneView): RailSelection {
-  if (view.kind === "wallet") return { kind: "wallet" };
-  if (view.kind === "all") return { kind: "all" };
-  if (view.kind === "rail-chain") return { kind: "chain", blockchain: view.blockchain };
-  return { kind: "networks" };
-}
-
-function chainByCode(chains: readonly PayChain[], blockchain: string): PayChain | undefined {
-  return chains.find((chain) => chain.blockchain === blockchain);
 }
 
 export function TokenSelectDialog(props: TokenSelectDialogProps) {
@@ -115,14 +105,12 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     closeClassName,
     contentClassName,
     searchClassName,
-    railClassName,
     rowClassName,
   } = props;
   const payer = role === "payer";
   const showBalances = payer;
   const {
     wallet,
-    popularTokens: popularRefs,
     tokens,
     loading,
     stableSymbols,
@@ -144,49 +132,28 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     () => (showBalances ? { ...connectedOwners, ...balanceOwners } : {}),
     [showBalances, connectedOwners, balanceOwners],
   );
-  const walletConnected = hasAnyOwner(connectedOwners);
   const [search, setSearch] = useState("");
-  const [view, setView] = useState<PaneView>(payer ? { kind: "networks" } : { kind: "all" });
-  const [slideDirection, setSlideDirection] = useState<1 | -1>(1);
-  const networksScrollRef = useRef<HTMLDivElement>(null);
-  const savedNetworksScroll = useRef(0);
-  const walletConnectedRef = useRef(walletConnected);
-  const payerRef = useRef(payer);
+  const [chainFilter, setChainFilter] = useState(ALL_CHAIN_FILTER);
+  const userPickedChain = useRef(false);
   const lockRef = useRef(lockChainKind);
   const tokensRef = useRef(tokens);
-  walletConnectedRef.current = walletConnected;
-  payerRef.current = payer;
   lockRef.current = lockChainKind;
   tokensRef.current = tokens;
 
   useEffect(() => {
     if (!open) return;
+    userPickedChain.current = false;
     setSearch("");
-    const lock = lockRef.current;
-    if (lock) {
-      const filter = initialChainFilter(
-        lock,
-        getTokenSelectPrefs().recentBlockchains,
-        chainsFromTokens(tokensRef.current),
-      );
-      if (filter !== ALL_CHAIN_FILTER) {
-        setView({ kind: "rail-chain", blockchain: filter });
-        return;
-      }
-      return;
-    }
-    if (!payerRef.current) {
-      setView({ kind: "all" });
-      return;
-    }
-    setView(walletConnectedRef.current ? { kind: "wallet" } : { kind: "networks" });
+    setChainFilter(initialChainFilter(
+      lockRef.current,
+      getTokenSelectPrefs().recentBlockchains,
+      chainsFromTokens(tokensRef.current),
+    ));
   }, [open]);
 
   useEffect(() => {
-    if (!open || !lockChainKind) return;
-    const filter = initialChainFilter(lockChainKind, getTokenSelectPrefs().recentBlockchains, chainsFromTokens(tokens));
-    if (filter === ALL_CHAIN_FILTER) return;
-    setView((current) => (current.kind === "rail-chain" ? current : { kind: "rail-chain", blockchain: filter }));
+    if (!open || !lockChainKind || userPickedChain.current) return;
+    setChainFilter(initialChainFilter(lockChainKind, getTokenSelectPrefs().recentBlockchains, chainsFromTokens(tokens)));
   }, [open, lockChainKind, tokens]);
 
   const allowed = useMemo(() => {
@@ -244,6 +211,10 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
   }
 
   const availableChains = useMemo(() => chainsFromTokens(scopedTokens), [scopedTokens]);
+  const rangeTokens = useMemo(
+    () => scopedTokens.filter((token) => matchesChainFilter(token, chainFilter)),
+    [scopedTokens, chainFilter],
+  );
 
   const fundedBlockchains = useMemo(() => {
     const funded = new Set<string>();
@@ -256,272 +227,224 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     return funded;
   }, [availableChains, owners, scopedTokens, showBalances, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
-  const railChains = useMemo(() => {
-    if (!payer) return sortChainsAlpha(availableChains);
-    const connected = payerRailChains(availableChains, owners, fundedBlockchains);
-    return sortChainsForSidebar(connected, scopedTokens, {
-      showBalances,
-      getBalanceUsd: (token) => tokenBalanceUsd(token, balanceOf(token)),
-    });
-  }, [payer, availableChains, owners, fundedBlockchains, scopedTokens, showBalances, balanceEntries, balanceMode, syncGetBalance]);
+  const dottedChains = useMemo(() => {
+    if (!payer) return [];
+    return payerRailChains(availableChains, owners, fundedBlockchains);
+  }, [payer, availableChains, owners, fundedBlockchains]);
 
-  const networkChains = useMemo(() => sortChainsAlpha(availableChains), [availableChains]);
+  const dottedSet = useMemo(() => new Set(dottedChains.map((chain) => chain.blockchain)), [dottedChains]);
 
-  useEffect(() => {
-    if (!open || !payer || lockChainKind) return;
-    setView((current) => {
-      if (current.kind === "wallet" && !walletConnected) return { kind: "networks" };
-      if (current.kind === "rail-chain" && !railChains.some((chain) => chain.blockchain === current.blockchain)) {
-        return walletConnected ? { kind: "wallet" } : { kind: "networks" };
-      }
-      return current;
-    });
-  }, [open, payer, lockChainKind, walletConnected, railChains]);
+  const menuChains = useMemo(() => chainMenuOrder(availableChains, scopedTokens, {
+    dotted: dottedSet,
+    showBalances,
+    getBalanceUsd: (token) => tokenBalanceUsd(token as PayToken, balanceOf(token as PayToken)),
+  }), [availableChains, scopedTokens, dottedSet, showBalances, balanceEntries, owners, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
-  const popularTokens = useMemo(
-    () => popularTokensForWallets(scopedTokens, popularRefs, (kind) => Boolean(connectedOwners[kind])),
-    [scopedTokens, popularRefs, connectedOwners],
+  const previewChains = useMemo(() => allChainPreview(availableChains), [availableChains]);
+  const searching = search.trim().length > 0;
+  const rangeWalletConnected = rangeTokens.some((token) => Boolean(owners[token.chain.chainKind]));
+
+  const recentTokens = useMemo(
+    () => recentTokensInOrder(rangeTokens, prefs.recentAssetIds).slice(0, MAX_RECENTLY_USED),
+    [rangeTokens, prefs.recentAssetIds],
+  );
+  const recentSearches = useMemo(
+    () => recentTokensInOrder(rangeTokens, prefs.recentSearchAssetIds).slice(0, MAX_RECENT_SEARCHES),
+    [rangeTokens, prefs.recentSearchAssetIds],
   );
 
-  const newestAssetId = showBalances ? prefs.recentAssetIds[0] ?? null : null;
-  const searching = search.trim().length > 0;
+  const yours = useMemo(() => {
+    if (!payer || !rangeWalletConnected) return [];
+    return positiveBalanceTokens(rangeTokens, usdOf);
+  }, [payer, rangeWalletConnected, rangeTokens, owners, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
-  const sections = useMemo((): TokenListSection[] => {
-    if (view.kind === "wallet") {
-      const next: TokenListSection[] = [];
-      const recent = recentTokensInOrder(scopedTokens, prefs.recentAssetIds);
-      if (recent.length > 0) {
-        next.push({
-          id: "recent",
-          title: "Recently Used",
-          tokens: recent,
-          badgeAssetId: newestAssetId,
-        });
+  const trends = useMemo(() => trendTokensIn(rangeTokens, {
+    chainFilter,
+    sortRest: (rest) => {
+      if (chainFilter === ALL_CHAIN_FILTER) {
+        return rest.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
       }
-      const yours = positiveBalanceTokens(scopedTokens, usdOf);
-      if (yours.length > 0) {
-        next.push({ id: "yours", title: "Your Tokens", tokens: yours });
-      }
-      if (popularTokens.length > 0) {
-        next.push({ id: "popular", title: POPULAR_SECTION_TITLE, tokens: popularTokens });
-      }
-      return next;
-    }
+      const chain = availableChains.find((item) => item.blockchain === chainFilter);
+      return sortTokensForChain(rest, {
+        withBalances: Boolean(chain && owners[chain.chainKind]),
+        usdOf,
+        loadingOf,
+        stableSymbols,
+      });
+    },
+  }), [rangeTokens, chainFilter, availableChains, owners, stableSymbols, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
-    if (view.kind === "all") {
-      const next: TokenListSection[] = [];
-      if (popularTokens.length > 0) {
-        next.push({ id: "popular", title: POPULAR_SECTION_TITLE, tokens: popularTokens });
-      }
-      const sorted = scopedTokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols));
-      next.push({ id: "all", tokens: sorted });
-      return next;
-    }
+  const receiverTokens = useMemo(
+    () => rangeTokens.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols)),
+    [rangeTokens, stableSymbols],
+  );
 
-    if (view.kind === "rail-chain" || view.kind === "network-chain") {
-      const matched = scopedTokens.filter((token) => token.blockchain === view.blockchain);
-      if (!payer) {
-        const next: TokenListSection[] = [];
-        const popular = popularTokens.filter((token) => token.blockchain === view.blockchain);
-        if (popular.length > 0) {
-          next.push({ id: "popular", title: POPULAR_SECTION_TITLE, tokens: popular });
-        }
-        next.push({
-          id: view.blockchain,
-          tokens: matched.slice().sort((left, right) => compareTokensByPriority(left, right, stableSymbols)),
-        });
-        return next;
-      }
-      const chain = chainByCode(availableChains, view.blockchain);
-      return [{
-        id: view.blockchain,
-        tokens: sortTokensForChain(matched, {
-          withBalances: Boolean(chain && owners[chain.chainKind]),
-          usdOf,
-          loadingOf,
-          stableSymbols,
-        }),
-        badgeAssetId: newestAssetId,
-      }];
-    }
-
-    return [];
-  }, [
-    view,
-    payer,
-    scopedTokens,
-    prefs.recentAssetIds,
-    newestAssetId,
-    balanceEntries,
-    owners,
-    popularTokens,
-    availableChains,
-    stableSymbols,
-    balanceMode,
-    syncGetBalance,
-    syncIsBalanceLoading,
-  ]);
-
-  const searchGroups = useMemo(() => {
+  const results = useMemo(() => {
     if (!searching) return [];
-    return groupSearchResults(scopedTokens, search, {
+    return searchTokens(rangeTokens, search, {
       role: payer ? "payer" : "receiver",
       usdOf,
       loadingOf,
-      hasOwner: (kind) => Boolean(owners[kind]),
-      stableSymbols,
     });
-  }, [searching, scopedTokens, search, payer, owners, stableSymbols, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
+  }, [searching, rangeTokens, search, payer, owners, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
-  function handleSelectChain(blockchain: string, fromNetworks: boolean) {
-    setLastBlockchain(blockchain);
-    if (fromNetworks) {
-      savedNetworksScroll.current = networksScrollRef.current?.scrollTop ?? 0;
-      setSlideDirection(1);
-      setView({ kind: "network-chain", blockchain });
-      return;
-    }
-    setView({ kind: "rail-chain", blockchain });
-  }
-
-  function handleBackToNetworks() {
-    setSlideDirection(-1);
-    setView({ kind: "networks" });
-  }
-
-  useLayoutEffect(() => {
-    if (view.kind !== "networks" || slideDirection !== -1) return;
-    const node = networksScrollRef.current;
-    if (!node) return;
-    node.scrollTop = savedNetworksScroll.current;
-  }, [view, slideDirection]);
-
-  function handleSelectToken(token: PayToken) {
+  function handleSelectToken(token: PayToken, fromSearch: boolean) {
     if (isBlockchainDisabled(token.blockchain, disabledBlockchains)) return;
     if (isChainKindLocked(token.chain.chainKind, lockChainKind)) return;
     if (payer) setLastToken(token.assetId, token.blockchain);
     else setLastBlockchain(token.blockchain);
+    if (fromSearch && search.trim()) setRecentSearch(token.assetId);
     onSelect({ token });
     onClose();
   }
 
-  const activeChain = view.kind === "rail-chain" || view.kind === "network-chain"
-    ? chainByCode(availableChains, view.blockchain)
-    : undefined;
-  const chainHeader: TokenPaneHeader | null = view.kind === "network-chain"
-    ? { kind: "back", title: activeChain?.chainName ?? view.blockchain, onBack: handleBackToNetworks, walletKind: activeChain?.chainKind }
-    : view.kind === "rail-chain"
-      ? { kind: "chain", title: activeChain?.chainName ?? view.blockchain, walletKind: activeChain?.chainKind }
-      : null;
+  function clearVisibleSearches() {
+    if (chainFilter === ALL_CHAIN_FILTER) {
+      removeRecentSearches(prefs.recentSearchAssetIds);
+      return;
+    }
+    const byId = new Map(scopedTokens.map((token) => [token.assetId, token]));
+    removeRecentSearches(prefs.recentSearchAssetIds.filter((assetId) => byId.get(assetId)?.blockchain === chainFilter));
+  }
 
-  const awaitingBalances = showBalances
-    && sections.every((section) => section.tokens.length === 0)
-    && scopedTokens.some((token) => loadingOf(token));
   const tokenDisabled = (token: PayToken) => (
     isBlockchainDisabled(token.blockchain, disabledBlockchains)
     || isChainKindLocked(token.chain.chainKind, lockChainKind)
   );
-  const sliding = view.kind === "networks" || view.kind === "network-chain";
 
-  const tokenPane = (
-    <TokenPane
-      sections={sections}
-      header={chainHeader}
-      selectedAssetId={selectedAssetId}
-      loading={loading || awaitingBalances}
-      showBalances={showBalances}
-      showWalletStatus={payer}
-      getBalance={balanceOf}
-      isBalanceLoading={loadingOf}
-      onSelectToken={handleSelectToken}
-      isTokenDisabled={tokenDisabled}
-      rowClassName={rowClassName}
-    />
-  );
+  const sections = useMemo((): TokenListSection[] => {
+    if (loading) {
+      const next: TokenListSection[] = [];
+      if (payer && rangeWalletConnected) {
+        next.push({ id: "yours", title: YOUR_TOKENS_TITLE, icon: "database", tokens: [], skeletonRows: 2 });
+      }
+      if (payer && recentSearches.length > 0) {
+        next.push({
+          id: "searches",
+          title: RECENT_SEARCHES_TITLE,
+          icon: "duration",
+          tokens: [],
+          skeletonRows: 2,
+          action: { label: "Clear", onClick: clearVisibleSearches },
+        });
+      }
+      if (payer) {
+        next.push({ id: "trends", title: TRENDS_TOKEN_TITLE, icon: "trends", tokens: [], skeletonRows: 6 });
+      }
+      return next;
+    }
+    if (!payer) return [];
+    const next: TokenListSection[] = [];
+    if (yours.length > 0) {
+      next.push({ id: "yours", title: YOUR_TOKENS_TITLE, icon: "database", tokens: yours });
+    }
+    if (recentSearches.length > 0) {
+      next.push({
+        id: "searches",
+        title: RECENT_SEARCHES_TITLE,
+        icon: "duration",
+        tokens: recentSearches,
+        action: { label: "Clear", onClick: clearVisibleSearches },
+      });
+    }
+    if (trends.length > 0) {
+      next.push({ id: "trends", title: TRENDS_TOKEN_TITLE, icon: "trends", tokens: trends });
+    }
+    return next;
+  }, [loading, payer, rangeWalletConnected, recentSearches, yours, trends, chainFilter, prefs.recentSearchAssetIds, scopedTokens]);
 
   return (
     <Dialog
       open={open}
       onClose={onClose}
       title={title}
-      titleClassName={cx(
-        "min-w-0 flex-1 truncate text-base font-medium text-[#606060] md:flex-none",
-        fontSans,
-        titleClassName,
-      )}
-      headerClassName={cx("h-14 border-b border-[#e3e3e3] px-[22px] pr-4", headerClassName)}
-      closeClassName={cx("md:ml-0", closeClassName)}
+      titleClassName={cx("text-[18px] font-semibold text-black", fontSans, titleClassName)}
+      headerClassName={cx("border-0 px-6 pt-[25px] pb-0", headerClassName)}
+      closeClassName={closeClassName}
       contentClassName={cx("overflow-hidden", contentClassName)}
-      headerAction={(
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="search or paste address"
-          className="ml-auto hidden w-[215px] shrink-0 md:block"
-          inputClassName={cx(SEARCH_INPUT_CLASS, searchClassName)}
-        />
-      )}
       cardClassName={cx(
-        "w-full max-h-[90vh] gap-0 rounded-[12px] border border-[#e0e0e0] bg-[#fdfdfd] p-0 shadow-[0_0_40px_0_rgba(0,0,0,0.06)] md:w-[474px] md:rounded-[12px] md:p-0",
+        "w-full max-h-[90vh] gap-3 rounded-[12px] border border-[#e0e0e0] bg-[#fdfdfd] p-0 shadow-[0_0_40px_0_rgba(0,0,0,0.06)] md:w-[448px] md:rounded-[12px] md:p-0",
         className,
       )}
     >
-      <div className="flex h-[min(520px,62vh)] min-h-0 flex-col overflow-hidden md:h-[min(555px,70vh)]">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="search or paste address"
-          className="mb-3 shrink-0 px-[22px] md:hidden"
-          inputClassName={cx(SEARCH_INPUT_CLASS, searchClassName)}
-        />
-        <div className="flex min-h-0 flex-1">
-          <NetworkRail
-            role={payer ? "payer" : "receiver"}
-            walletConnected={walletConnected}
-            selection={railSelection(view)}
-            chains={railChains}
-            fundedBlockchains={fundedBlockchains}
+      <div className="flex h-[min(620px,70vh)] min-h-0 flex-col gap-2.5 pt-3">
+        <div className="flex shrink-0 items-center gap-3.5 px-5">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="search or paste address"
+            className="min-w-0 flex-1"
+            iconClassName={TOKEN_SEARCH_ICON_CLASS}
+            inputClassName={cx(TOKEN_SEARCH_CLASS, searchClassName)}
+          />
+          <ChainSelect
+            chains={menuChains}
+            previewChains={previewChains}
+            dotted={dottedSet}
+            value={chainFilter}
+            onChange={(blockchain) => {
+              userPickedChain.current = true;
+              setChainFilter(blockchain);
+            }}
             lockChainKind={lockChainKind}
             disabledBlockchains={disabledBlockchains}
             disabledReason={disabledReason}
-            onSelectWallet={() => setView({ kind: "wallet" })}
-            onSelectAll={() => setView({ kind: "all" })}
-            onSelectNetworks={() => setView({ kind: "networks" })}
-            onSelectChain={(blockchain) => handleSelectChain(blockchain, false)}
-            className={railClassName}
           />
+        </div>
+        <div className="flex min-h-0 flex-1 flex-col gap-2.5">
+          {payer && loading && recentTokens.length > 0 ? <RecentTileSkeletons /> : null}
+          {payer && !loading ? (
+            <RecentTiles tokens={recentTokens} onSelect={(token) => handleSelectToken(token, false)} isTokenDisabled={tokenDisabled} />
+          ) : null}
           {searching ? (
             <SearchResults
-              groups={searchGroups}
+              tokens={results}
               selectedAssetId={selectedAssetId}
               loading={loading}
               showBalances={showBalances}
-              showWalletStatus={payer}
               getBalance={balanceOf}
               isBalanceLoading={loadingOf}
-              onSelectToken={handleSelectToken}
+              onSelectToken={(token) => handleSelectToken(token, true)}
               isTokenDisabled={tokenDisabled}
               rowClassName={rowClassName}
             />
-          ) : sliding ? (
-            <PaneTransition
-              paneKey={view.kind === "network-chain" ? `network-chain:${view.blockchain}` : "networks"}
-              direction={slideDirection}
-            >
-              {view.kind === "networks" ? (
-                <ChainPane
-                  chains={networkChains}
-                  showWalletStatus={payer}
-                  onSelectChain={(blockchain) => handleSelectChain(blockchain, true)}
-                  lockChainKind={lockChainKind}
-                  disabledBlockchains={disabledBlockchains}
-                  disabledReason={disabledReason}
-                  scrollRef={networksScrollRef}
-                />
-              ) : tokenPane}
-            </PaneTransition>
+          ) : payer ? (
+            <TokenPane
+              sections={sections}
+              selectedAssetId={selectedAssetId}
+              showBalances={showBalances}
+              getBalance={balanceOf}
+              isBalanceLoading={loadingOf}
+              onSelectToken={(token) => handleSelectToken(token, false)}
+              isTokenDisabled={tokenDisabled}
+              rowClassName={rowClassName}
+              emptyLabel={
+                recentTokens.length === 0 && sections.every((section) => section.tokens.length === 0 && !section.skeletonRows)
+                  ? "No tokens found"
+                  : null
+              }
+            />
+          ) : loading ? (
+            <div className="min-h-0 flex-1 overflow-y-auto px-3">
+              <TokenListSkeleton rows={6} />
+            </div>
           ) : (
-            <div className="relative min-h-0 flex-1">{tokenPane}</div>
+            <TokenPane
+              sections={[{
+                id: "all",
+                title: "",
+                icon: "trends",
+                tokens: receiverTokens,
+              }]}
+              selectedAssetId={selectedAssetId}
+              showBalances={false}
+              getBalance={balanceOf}
+              isBalanceLoading={loadingOf}
+              onSelectToken={(token) => handleSelectToken(token, false)}
+              isTokenDisabled={tokenDisabled}
+              rowClassName={rowClassName}
+              emptyLabel={receiverTokens.length === 0 ? "No tokens found" : null}
+            />
           )}
         </div>
       </div>

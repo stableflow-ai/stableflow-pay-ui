@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- **Breaking:** Icon imports are `@stableflow/pay-ui/icons/outline/<name>` or `@stableflow/pay-ui/icons/solid/<name>`. `icons/types` is unchanged. `IconDatabase` moved to `icons/solid/database`; the previous glyph is `IconDatabaseOutline` (`icons/outline/database`). `IconDuration` moved to `icons/solid/duration`; the previous glyph is `IconDurationOutline` (`icons/outline/duration`). `IconDuration2` stays on `icons/solid/duration`. `IconEye` is `icons/solid/eye`. `IconEyeHidden` is `icons/outline/eye-hidden`. Added `IconTrends` (`icons/outline/trends`).
+- `SearchInput` accepts `iconClassName` for the leading search icon.
 - `Dialog`, `Drawer`, and `OverlayPanel` accept `headerClassName` on the header row.
 - Dropped duplicate icon `IconPayment` (keep `IconUp`). Added `IconDown` (`icons/down`) and `IconPrivate` (`icons/private`).
 - Added `IconAlertCircle` (`icons/alert-circle`), `IconMember` (`icons/member`), and `IconDuration2` (second export of `icons/duration`).

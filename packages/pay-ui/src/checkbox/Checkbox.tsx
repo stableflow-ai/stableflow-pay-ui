@@ -1,5 +1,5 @@
 import { useState, type ButtonHTMLAttributes } from "react";
-import { IconCheck } from "../icons/check";
+import { IconCheck } from "../icons/outline/check";
 import { cn } from "../lib/cn";
 
 export type CheckboxProps = Omit<

@@ -1,5 +1,5 @@
 export { PayWidgetsProvider, type PayWidgetsProviderProps } from "./context";
-export { TokenSelectDialog, type TokenSelectDialogProps, type TokenSelectSelection, type PaneView } from "./TokenSelectDialog";
+export { TokenSelectDialog, type TokenSelectDialogProps, type TokenSelectSelection } from "./TokenSelectDialog";
 export { mapPayConfigSource, normalizePayConfig, tokenAssetId, type NormalizePayConfigOptions } from "./pay-config";
 export {
   clearPayTokenBalances,
@@ -7,7 +7,7 @@ export {
   usePayTokenBalance,
   type TokenBalance,
 } from "./balances";
-export { chainsFromTokens, parsePopularTokens } from "./utils";
+export { chainsFromTokens } from "./utils";
 export { KNOWN_CHAIN_KINDS, ownerKey } from "./types";
 export type {
   BalanceReadResult,
@@ -17,7 +17,6 @@ export type {
   PayConfigSource,
   PayToken,
   PayWallet,
-  PopularTokenRef,
   ReadBalances,
   TokenSelectRole,
 } from "./types";

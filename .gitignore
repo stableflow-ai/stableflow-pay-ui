@@ -10,3 +10,5 @@ coverage
 .cursor/*
 !.cursor/skills/
 !.cursor/skills/**
+
+doc.local/
