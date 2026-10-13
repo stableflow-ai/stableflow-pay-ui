@@ -292,13 +292,13 @@ describe("tokenPriority", () => {
     const near = rankedToken("near", "NEAR", "Near", { blockchain: "near", contractAddress: "wrap.near", chainKind: "near" });
     const dai = rankedToken("dai", "DAI", "Ethereum");
     expect(tokenPriority(usdt)).toBe(0);
+    expect(tokenPriority(dai)).toBe(0);
     expect(tokenPriority(near)).toBe(1);
-    expect(tokenPriority(dai)).toBe(2);
     expect([dai, near, usdc, usdt].slice().sort(compareTokensByPriority).map((item) => item.symbol)).toEqual([
       "USDT",
       "USDC",
-      "NEAR",
       "DAI",
+      "NEAR",
     ]);
   });
 
@@ -331,7 +331,7 @@ describe("sortTokensForChain", () => {
       usdOf: () => 100,
       loadingOf: () => false,
     });
-    expect(sorted.map((item) => item.assetId)).toEqual(["usdt", "usdc", "eth", "dai"]);
+    expect(sorted.map((item) => item.assetId)).toEqual(["usdt", "usdc", "dai", "eth"]);
   });
 });
 

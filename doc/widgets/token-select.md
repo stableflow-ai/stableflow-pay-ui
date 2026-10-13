@@ -26,7 +26,7 @@ Render `TokenSelectDialog` inside `PayWidgetsProvider`. The dialog throws if tha
 | `wallet` | Accounts plus `connect` and `disconnect`. `accounts` is keyed by any chain-kind string. |
 | `readBalances` | Async mode. Called with an owner, chain, and token batch. The widget polls while the dialog is open. |
 | `getBalance`, `isBalanceLoading` | Sync mode. The widget reads balances from these callbacks and does not poll. `getBalance` should change when balances change so the dialog re-renders. |
-| `stableSymbols` | Stablecoin order. Defaults to `USDT`, then `USDC`. |
+| `stableSymbols` | Stablecoin order. Defaults to `USDT`, then `USDC`, then `DAI`. |
 | `chainKindLabels` | Display names for chain kinds. Built-in labels are used when a kind is missing. |
 | `onCopyAddress` | Called when the user copies a connected address. |
 
@@ -68,7 +68,7 @@ While `loading` is true the payer shows skeleton cards when the scope already ha
 
 ## Sorting
 
-Stablecoins sort before gas tokens, then other symbols. Gas is a native asset (empty address, `native`, or the zero address) or `NEAR` on Near. That order is `compareTokensByPriority`. A receiver's flat list uses it. The tokens appended under Trends Token use it on All. On a selected chain they use `sortTokensForChain` (balance order when that chain kind has an address).
+Stablecoins sort before gas tokens, in `stableSymbols` order (`USDT`, `USDC`, `DAI`), then other symbols. Gas is a native asset (empty address, `native`, or the zero address) or `NEAR` on Near. That order is `compareTokensByPriority`. A receiver's flat list uses it. The tokens appended under Trends Token use it on All. On a selected chain they use `sortTokensForChain` (balance order when that chain kind has an address).
 
 Search results are a flat list. A payer sorts them with `sortTokensByBalance`: positive USD high to low, then balances still loading, then zero or unknown. Ties sort by symbol, then chain name. A receiver sorts by symbol, then chain name. An empty result says "No tokens found".
 

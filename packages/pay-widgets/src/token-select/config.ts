@@ -1,6 +1,6 @@
 export const TOKEN_BALANCE_POLL_MS = 60_000;
 export const ALL_CHAIN_FILTER = "all";
-export const DEFAULT_STABLE_SYMBOLS = ["USDT", "USDC"] as const;
+export const DEFAULT_STABLE_SYMBOLS = ["USDT", "USDC", "DAI"] as const;
 export const TOKEN_SELECT_PREFS_STORAGE_KEY = "stableflow-pay:token-select-prefs:v1";
 export const TOKEN_SELECT_PREFS_VERSION = 3;
 export const MAX_RECENT_BLOCKCHAINS = 16;

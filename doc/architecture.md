@@ -26,6 +26,8 @@ The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.a
 
 Demo pages use `/{id}` paths, such as `/token-select`. Workers assets use single-page-application fallback so a refresh stays on that page. An unknown path still renders Home and keeps the address.
 
+`/token-select` writes its four toggles into the query so a link reopens that state: `connected` (`true` or `false`), `balances` (`async` or `sync`), `role` (`payer` or `receiver`), and `loading` (`on` or `off`). A missing or unknown value uses the default: connected, async balances, payer, loading off.
+
 ## Data boundary
 
 Widgets receive wallet actions, balance readers, and config callbacks through props. They do not read application stores. Token select loads `GET /v1/pay/config` itself and keeps balances in memory.

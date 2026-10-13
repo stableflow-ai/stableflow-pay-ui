@@ -31,18 +31,85 @@ function syncBalance(token: PayToken): string {
   return "0";
 }
 
+type BalanceMode = "async" | "sync";
+
+type TokenSelectQuery = {
+  connected: boolean;
+  balanceMode: BalanceMode;
+  role: TokenSelectRole;
+  simulateLoading: boolean;
+};
+
+const DEFAULT_QUERY: TokenSelectQuery = {
+  connected: true,
+  balanceMode: "async",
+  role: "payer",
+  simulateLoading: false,
+};
+
+function flag(value: string | null, truthy: string, falsy: string): boolean | null {
+  if (value === truthy) return true;
+  if (value === falsy) return false;
+  return null;
+}
+
+function readTokenSelectQuery(search: string): TokenSelectQuery {
+  const params = new URLSearchParams(search);
+  const balanceMode = params.get("balances");
+  const role = params.get("role");
+  return {
+    connected: flag(params.get("connected"), "true", "false") ?? DEFAULT_QUERY.connected,
+    balanceMode: balanceMode === "async" || balanceMode === "sync" ? balanceMode : DEFAULT_QUERY.balanceMode,
+    role: role === "payer" || role === "receiver" ? role : DEFAULT_QUERY.role,
+    simulateLoading: flag(params.get("loading"), "on", "off") ?? DEFAULT_QUERY.simulateLoading,
+  };
+}
+
+function tokenSelectQueryString(state: TokenSelectQuery): string {
+  const params = new URLSearchParams();
+  params.set("connected", state.connected ? "true" : "false");
+  params.set("balances", state.balanceMode);
+  params.set("role", state.role);
+  params.set("loading", state.simulateLoading ? "on" : "off");
+  return params.toString();
+}
+
+function writeTokenSelectQuery(state: TokenSelectQuery) {
+  const next = `${window.location.pathname}?${tokenSelectQueryString(state)}${window.location.hash}`;
+  const current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (next !== current) window.history.replaceState(null, "", next);
+}
+
 export function TokenSelectPage() {
+  const initialQuery = readTokenSelectQuery(window.location.search);
   const [tokens, setTokens] = useState<PayToken[]>([]);
   const [loading, setLoading] = useState(true);
   const [configError, setConfigError] = useState("");
-  const [connected, setConnected] = useState(true);
-  const [balanceMode, setBalanceMode] = useState<"async" | "sync">("async");
-  const [role, setRole] = useState<TokenSelectRole>("payer");
+  const [connected, setConnected] = useState(initialQuery.connected);
+  const [balanceMode, setBalanceMode] = useState<BalanceMode>(initialQuery.balanceMode);
+  const [role, setRole] = useState<TokenSelectRole>(initialQuery.role);
   const [accounts, setAccounts] = useState<PayWallet["accounts"]>({
     evm: { address: DEMO_ADDRESSES.evm, canDisconnect: true },
   });
-  const [simulateLoading, setSimulateLoading] = useState(false);
+  const [simulateLoading, setSimulateLoading] = useState(initialQuery.simulateLoading);
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    writeTokenSelectQuery({ connected, balanceMode, role, simulateLoading });
+  }, [connected, balanceMode, role, simulateLoading]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (window.location.pathname.replace(/\/$/, "") !== "/token-select") return;
+      const next = readTokenSelectQuery(window.location.search);
+      setConnected(next.connected);
+      setBalanceMode(next.balanceMode);
+      setRole(next.role);
+      setSimulateLoading(next.simulateLoading);
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
