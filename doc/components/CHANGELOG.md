@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `DateRangePicker` sizes its trigger to the label. While a new start day is selected, the calendar highlights only that day. Closing without an end day restores the previous range.
 - **Breaking:** Icon imports are `@stableflow/pay-ui/icons/outline/<name>` or `@stableflow/pay-ui/icons/solid/<name>`. `icons/types` is unchanged. `IconDatabase` moved to `icons/solid/database`; the previous glyph is `IconDatabaseOutline` (`icons/outline/database`). `IconDuration` moved to `icons/solid/duration`; the previous glyph is `IconDurationOutline` (`icons/outline/duration`). `IconDuration2` stays on `icons/solid/duration`. `IconEye` is `icons/solid/eye`. `IconEyeHidden` is `icons/outline/eye-hidden`. Added `IconTrends` (`icons/outline/trends`).
 - `SearchInput` accepts `iconClassName` for the leading search icon.
 - `Dialog`, `Drawer`, and `OverlayPanel` accept `headerClassName` on the header row.

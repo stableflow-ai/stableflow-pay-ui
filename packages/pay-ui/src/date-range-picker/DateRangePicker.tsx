@@ -94,7 +94,7 @@ export function DateRangePicker(props: {
   };
 
   return (
-    <div className={cn("relative inline-block min-w-0", className)}>
+    <div className={cn("relative inline-flex w-max max-w-full", className)}>
       <button
         ref={triggerRef}
         type="button"
@@ -106,15 +106,13 @@ export function DateRangePicker(props: {
           setDraftStart(null);
         }}
         className={cn(
-          "inline-flex cursor-pointer h-9 w-full min-w-0 items-center justify-between gap-2 overflow-hidden rounded-[6px] border border-[#E3E3E3] bg-white px-3 text-sm font-medium text-black outline-none",
+          "inline-flex cursor-pointer h-9 w-max max-w-full items-center gap-2 whitespace-nowrap rounded-[6px] border border-[#E3E3E3] bg-white px-3 text-sm font-medium text-black outline-none",
           fontSans,
           triggerClassName,
         )}
       >
-        <span className="min-w-0 shrink truncate text-[#aaa]">Time</span>
-        <span className="flex min-w-0 flex-1 items-center justify-end gap-2 truncate text-right">
-          {formatDateRangeLabel(value)}
-        </span>
+        <span className="shrink-0 text-[#aaa]">Time</span>
+        <span className="shrink-0">{formatDateRangeLabel(value)}</span>
         <IconArrowDown className={cn("h-1.5 w-2.75 shrink-0 text-black transition-transform", open && "rotate-180")} />
       </button>
       {open && typeof document !== "undefined"
@@ -158,7 +156,9 @@ export function DateRangePicker(props: {
               <div className="grid grid-cols-7 gap-1">
                 {days.map((day) => {
                   const inMonth = isSameMonth(day, viewMonth);
-                  const selected = isSameDay(day, value.from) || isSameDay(day, value.to) || (draftStart ? isSameDay(day, draftStart) : false);
+                  const selected = draftStart
+                    ? isSameDay(day, draftStart)
+                    : isSameDay(day, value.from) || isSameDay(day, value.to);
                   const inRange = !draftStart && isWithinInterval(day, { start: value.from, end: value.to });
                   return (
                     <button
