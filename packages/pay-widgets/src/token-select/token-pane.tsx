@@ -166,7 +166,7 @@ export function TokenRow(props: {
           ) : formatted != null ? (
             <>
               <span className={cx("block text-sm font-medium text-black", fontSans)}>
-                {formatDisplayAmount(formatted, { prefix: "", maxDecimals: 4 })}
+                {formatDisplayAmount(formatted, { prefix: "", maxDecimals: 4, showDust: true })}
               </span>
               {usd >= 0 ? (
                 <span className={cx("block text-xs text-[#606060]", fontSans)}>

@@ -22,7 +22,7 @@ const DEMO_ADDRESSES: Record<string, string> = {
 const readBalances: ReadBalances = async (batch) => batch.tokens.map((token) => ({
   assetId: token.assetId,
   raw: "1000000",
-  formatted: token.symbol === "USDC" ? "6000.78" : "25000",
+  formatted: token.symbol === "USDC" ? "0.000002" : "25000",
 }));
 
 function syncBalance(token: PayToken): string {
