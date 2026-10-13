@@ -24,6 +24,8 @@ Importing `@stableflow/pay-ui/button` loads Button and the icons Button renders.
 
 The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.ai/). A push to the connected GitHub repository publishes `apps/demo/dist` through the root `wrangler.jsonc`.
 
+Demo pages use `/{id}` paths, such as `/token-select`. Workers assets use single-page-application fallback so a refresh stays on that page. An unknown path still renders Home and keeps the address.
+
 ## Data boundary
 
 Widgets receive wallet actions, balance readers, and config callbacks through props. They do not read application stores. Token select loads `GET /v1/pay/config` itself and keeps balances in memory.

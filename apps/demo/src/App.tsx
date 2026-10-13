@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IconsPage } from "./icons-page";
 import { TokenSelectPage } from "./token-select-page";
 import {
@@ -47,6 +47,16 @@ type PageId = "home" | (typeof UI_PAGES)[number][0] | (typeof WIDGET_PAGES)[numb
 
 const COMPONENT_PAGES = [...UI_PAGES, ...WIDGET_PAGES];
 
+function pageFromPath(pathname: string): PageId {
+  const id = pathname.replace(/^\//, "").replace(/\/$/, "");
+  if (!id) return "home";
+  return COMPONENT_PAGES.some((item) => item[0] === id) ? (id as PageId) : "home";
+}
+
+function pathForPage(id: PageId): string {
+  return id === "home" ? "/" : `/${id}`;
+}
+
 function HomePage(props: { onOpen: (id: PageId) => void }) {
   return (
     <Page title="StableFlow Pay UI">
@@ -63,7 +73,22 @@ function HomePage(props: { onOpen: (id: PageId) => void }) {
 }
 
 export function App() {
-  const [page, setPage] = useState<PageId>("home");
+  const [page, setPageState] = useState<PageId>(() => pageFromPath(window.location.pathname));
+
+  useEffect(() => {
+    const onPopState = () => setPageState(pageFromPath(window.location.pathname));
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
+  function setPage(id: PageId) {
+    const path = pathForPage(id);
+    if (window.location.pathname !== path) {
+      window.history.pushState(null, "", path);
+    }
+    setPageState(id);
+  }
+
   const current = COMPONENT_PAGES.find((item) => item[0] === page);
   const Current = current?.[2];
 

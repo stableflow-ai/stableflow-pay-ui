@@ -74,7 +74,7 @@ Search results are a flat list. A payer sorts them with `sortTokensByBalance`: p
 
 The chain menu puts All first, then chains with a blue dot, then the rest by name. Dotted chains sort by USD, then name. A blue dot is payer-only and matches the old rail: an EVM chain needs a connected wallet and a positive balance; any other chain needs only a connected wallet. A chain search with no matches says "No networks found".
 
-Disabled chains (`lockChainKind` or `disabledBlockchains`) use `opacity-40` and `cursor-not-allowed`. All stays selectable. Desktop shows the reason in a tooltip. Below 768px the reason is 12px text under the chain name. Tokens on a locked kind stay in the list and stay disabled.
+Selectable chain rows use a `#f6f6f6` hover background, the same fill as the selected row. Disabled chains (`lockChainKind` or `disabledBlockchains`) use `opacity-40` and `cursor-not-allowed`, and their hover background stays transparent. All stays selectable. Desktop shows the reason in a tooltip. Below 768px the reason is 12px text under the chain name. Tokens on a locked kind stay in the list and stay disabled.
 
 The All button's 2x2 preview takes `eth` (or the first EVM chain when `eth` is absent), then `near`, `sol`, and `tron`. Fewer than four are filled from the remaining EVM chains by name. Four or fewer chains are all shown.
 

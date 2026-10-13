@@ -246,9 +246,9 @@ function ChainOption(props: {
         onSelect();
       }}
       className={cx(
-        "flex w-full cursor-pointer items-center gap-3 rounded-[6px] border-0 bg-transparent px-1.5 py-1.5 text-left",
+        "flex w-full cursor-pointer items-center gap-3 rounded-[6px] border-0 bg-transparent px-1.5 py-1.5 text-left hover:bg-[#f6f6f6]",
         selected && "bg-[#f6f6f6]",
-        disabled && "cursor-not-allowed",
+        disabled && "cursor-not-allowed hover:bg-transparent",
       )}
     >
       <span className="min-w-0 flex-1">

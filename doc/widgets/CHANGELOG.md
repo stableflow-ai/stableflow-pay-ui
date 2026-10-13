@@ -4,6 +4,7 @@ Widget notes live here. Presentational components stay in [../components/CHANGEL
 
 ## Unreleased
 
+- Chain menu rows use a `#f6f6f6` hover background. Disabled chains keep a transparent hover.
 - **Breaking:** Token select drops the network rail, chain drill-in, popular section, and grouped search. The dialog is a 448px card with a chain selector, Recently Used cards, Your Tokens, Recent Searches, and Trends Token. `popularTokens`, `parsePopularTokens`, `PopularTokenRef`, `PaneView`, and `railClassName` are removed. Search results are a flat list.
 - **Breaking:** `PayWidgetsProvider` takes a flat `tokens` list (each token includes `chain`) and `loading`. It no longer fetches config. Removed `apiHost`, `onConfig`, `chainKinds`, `usePayConfig`, `usePayConfigSnapshot`, `refetchPayConfig`, and `DEFAULT_API_HOST`. `normalizePayConfig(source, { chainKinds })` returns `PayToken[]`. Hosts that need chains call `chainsFromTokens`.
 - **Breaking:** `ChainKind` is any string. Built-in kinds stay on `KNOWN_CHAIN_KINDS`. Pass `chainKindLabels` for custom names.
