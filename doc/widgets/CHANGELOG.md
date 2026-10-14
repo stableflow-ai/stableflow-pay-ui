@@ -4,6 +4,7 @@ Widget notes live here. Presentational components stay in [../components/CHANGEL
 
 ## Unreleased
 
+- Your Tokens has a Show dust switch. It is off by default, remembered in token-select prefs, and hides balances under $1. Exactly $1 stays visible. An empty filtered list keeps the title and says "No tokens over $1".
 - DAI is a stablecoin and sorts last among them, after USDT and USDC.
 - Chain menu rows use a `#f6f6f6` hover background. Disabled chains keep a transparent hover.
 - **Breaking:** Token select drops the network rail, chain drill-in, popular section, and grouped search. The dialog is a 448px card with a chain selector, Recently Used cards, Your Tokens, Recent Searches, and Trends Token. `popularTokens`, `parsePopularTokens`, `PopularTokenRef`, `PaneView`, and `railClassName` are removed. Search results are a flat list.

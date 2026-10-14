@@ -23,6 +23,7 @@ import {
   tokenMatchesSearch,
   tokenPriority,
   trendTokensIn,
+  withoutDustTokens,
   type SidebarChain,
 } from "./utils";
 import { ALL_CHAIN_FILTER, TRENDS_TOKENS } from "./config";
@@ -232,6 +233,25 @@ describe("positiveBalanceTokens", () => {
     expect(positiveBalanceTokens([zero, funded], (item) => usd[item.assetId] ?? -1).map((item) => item.assetId)).toEqual([
       "usdt-eth",
     ]);
+  });
+});
+
+describe("withoutDustTokens", () => {
+  const large = token("usdt-eth", "USDT", "Ethereum");
+  const exact = token("usdc-eth", "USDC", "Ethereum");
+  const dust = token("dai-eth", "DAI", "Ethereum");
+  const tokens = [large, exact, dust];
+  const usd: Record<string, number> = { "usdt-eth": 10, "usdc-eth": 1, "dai-eth": 0.4 };
+
+  it("hides balances under $1 and keeps $1", () => {
+    expect(withoutDustTokens(tokens, (item) => usd[item.assetId] ?? -1, false).map((item) => item.assetId)).toEqual([
+      "usdt-eth",
+      "usdc-eth",
+    ]);
+  });
+
+  it("keeps dust when show dust is on", () => {
+    expect(withoutDustTokens(tokens, (item) => usd[item.assetId] ?? -1, true)).toBe(tokens);
   });
 });
 

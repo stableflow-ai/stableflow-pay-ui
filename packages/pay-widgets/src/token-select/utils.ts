@@ -1,4 +1,4 @@
-import { ALL_CHAIN_FILTER, ALL_CHAIN_PREVIEW_BLOCKCHAINS, DEFAULT_STABLE_SYMBOLS, TRENDS_TOKENS } from "./config";
+import { ALL_CHAIN_FILTER, ALL_CHAIN_PREVIEW_BLOCKCHAINS, DEFAULT_STABLE_SYMBOLS, DUST_USD, TRENDS_TOKENS } from "./config";
 import type { ChainKind, PayChain, PayToken, TokenSelectRole } from "./types";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -198,6 +198,16 @@ export function positiveBalanceTokens<T extends {
     getBalanceUsd,
     () => false,
   );
+}
+
+/** Drops balances under `DUST_USD` unless Show dust is on. `$1` stays visible. */
+export function withoutDustTokens<T>(
+  tokens: T[],
+  getBalanceUsd: (token: T) => number,
+  showDust: boolean,
+): T[] {
+  if (showDust) return tokens;
+  return tokens.filter((token) => getBalanceUsd(token) >= DUST_USD);
 }
 
 export function isGasToken(token: {

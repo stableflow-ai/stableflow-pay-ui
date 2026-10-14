@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Dialog } from "@stableflow/pay-ui/dialog";
 import { SearchInput } from "@stableflow/pay-ui/search-input";
+import { Switch } from "@stableflow/pay-ui/switch";
 import {
   ensurePayTokenBalances,
   getPayTokenBalance,
@@ -14,12 +15,13 @@ import {
   RECENT_SEARCHES_TITLE,
   TOKEN_BALANCE_POLL_MS,
   TRENDS_TOKEN_TITLE,
+  YOUR_TOKENS_DUST_EMPTY,
   YOUR_TOKENS_TITLE,
 } from "./config";
 import { ChainSelect } from "./chain-select";
 import { usePayWidgets } from "./context";
 import { cx, fontSans } from "./format";
-import { getTokenSelectPrefs, removeRecentSearches, setLastBlockchain, setLastToken, setRecentSearch, useTokenSelectPrefs } from "./prefs";
+import { getTokenSelectPrefs, removeRecentSearches, setLastBlockchain, setLastToken, setRecentSearch, setShowDust, useTokenSelectPrefs } from "./prefs";
 import { RecentTileSkeletons, RecentTiles } from "./recent-tiles";
 import { SearchResults } from "./search-results";
 import { TokenListSkeleton, TokenPane, type TokenListSection } from "./token-pane";
@@ -41,6 +43,7 @@ import {
   sortTokensForChain,
   tokenBalanceUsd,
   trendTokensIn,
+  withoutDustTokens,
 } from "./utils";
 
 export type TokenSelectSelection = {
@@ -78,6 +81,15 @@ function ownerForToken(owners: ChainOwners, token: PayToken): string | null {
 
 function hasAnyOwner(owners: ChainOwners): boolean {
   return Object.values(owners).some((address) => Boolean(address));
+}
+
+function ShowDustSwitch(props: { checked: boolean; onCheckedChange: (checked: boolean) => void }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-[5px]">
+      <span className={cx("text-sm font-medium leading-[normal] text-[#aaa]", fontSans)}>Show dust</span>
+      <Switch checked={props.checked} onCheckedChange={props.onCheckedChange} aria-label="Show dust" />
+    </label>
+  );
 }
 
 function isNativeToken(token: PayToken): boolean {
@@ -258,6 +270,11 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     return positiveBalanceTokens(rangeTokens, usdOf);
   }, [payer, rangeWalletConnected, rangeTokens, owners, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading]);
 
+  const visibleYours = useMemo(
+    () => withoutDustTokens(yours, usdOf, prefs.showDust),
+    [yours, prefs.showDust, owners, balanceEntries, balanceMode, syncGetBalance, syncIsBalanceLoading],
+  );
+
   const trends = useMemo(() => trendTokensIn(rangeTokens, {
     chainFilter,
     sortRest: (rest) => {
@@ -313,10 +330,20 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
   );
 
   const sections = useMemo((): TokenListSection[] => {
+    const showDustSwitch = payer ? (
+      <ShowDustSwitch checked={prefs.showDust} onCheckedChange={setShowDust} />
+    ) : null;
     if (loading) {
       const next: TokenListSection[] = [];
       if (payer && rangeWalletConnected) {
-        next.push({ id: "yours", title: YOUR_TOKENS_TITLE, icon: "database", tokens: [], skeletonRows: 2 });
+        next.push({
+          id: "yours",
+          title: YOUR_TOKENS_TITLE,
+          icon: "database",
+          tokens: [],
+          skeletonRows: 2,
+          trailing: showDustSwitch,
+        });
       }
       if (payer && recentSearches.length > 0) {
         next.push({
@@ -336,7 +363,14 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
     if (!payer) return [];
     const next: TokenListSection[] = [];
     if (yours.length > 0) {
-      next.push({ id: "yours", title: YOUR_TOKENS_TITLE, icon: "database", tokens: yours });
+      next.push({
+        id: "yours",
+        title: YOUR_TOKENS_TITLE,
+        icon: "database",
+        tokens: visibleYours,
+        trailing: showDustSwitch,
+        emptyLabel: visibleYours.length === 0 ? YOUR_TOKENS_DUST_EMPTY : null,
+      });
     }
     if (recentSearches.length > 0) {
       next.push({
@@ -351,7 +385,7 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
       next.push({ id: "trends", title: TRENDS_TOKEN_TITLE, icon: "trends", tokens: trends });
     }
     return next;
-  }, [loading, payer, rangeWalletConnected, recentSearches, yours, trends, chainFilter, prefs.recentSearchAssetIds, scopedTokens]);
+  }, [loading, payer, rangeWalletConnected, recentSearches, yours, visibleYours, trends, chainFilter, prefs.recentSearchAssetIds, prefs.showDust, scopedTokens]);
 
   return (
     <Dialog
@@ -419,7 +453,9 @@ export function TokenSelectDialog(props: TokenSelectDialogProps) {
               isTokenDisabled={tokenDisabled}
               rowClassName={rowClassName}
               emptyLabel={
-                recentTokens.length === 0 && sections.every((section) => section.tokens.length === 0 && !section.skeletonRows)
+                recentTokens.length === 0 && sections.every((section) => (
+                  section.tokens.length === 0 && !section.skeletonRows && !section.emptyLabel
+                ))
                   ? "No tokens found"
                   : null
               }

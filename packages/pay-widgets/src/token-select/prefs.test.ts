@@ -35,6 +35,7 @@ describe("migrateTokenSelectPrefs", () => {
       recentAssetIds: ["usdt-eth"],
       recentSearchAssetIds: [],
       recentBlockchains: ["sol"],
+      showDust: false,
     });
   });
 
@@ -46,6 +47,7 @@ describe("migrateTokenSelectPrefs", () => {
       recentAssetIds: ["usdt-eth", "usdc-sol"],
       recentSearchAssetIds: [],
       recentBlockchains: ["eth"],
+      showDust: false,
     });
   });
 
@@ -55,9 +57,21 @@ describe("migrateTokenSelectPrefs", () => {
       recentAssetIds: ids,
       recentSearchAssetIds: ids,
       recentBlockchains: ["eth"],
+      showDust: true,
     }, 3);
     expect(migrated.recentAssetIds).toHaveLength(MAX_RECENT_HISTORY);
     expect(migrated.recentSearchAssetIds).toHaveLength(MAX_RECENT_HISTORY);
+    expect(migrated.showDust).toBe(false);
+  });
+
+  it("reads show dust from v4 and ignores a non-boolean", () => {
+    expect(migrateTokenSelectPrefs({
+      recentAssetIds: ["usdt-eth"],
+      recentSearchAssetIds: ["usdc-sol"],
+      recentBlockchains: ["eth"],
+      showDust: true,
+    }, 4).showDust).toBe(true);
+    expect(migrateTokenSelectPrefs({ showDust: "yes" }, 4).showDust).toBe(false);
   });
 });
 

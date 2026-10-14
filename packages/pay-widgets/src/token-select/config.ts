@@ -2,7 +2,14 @@ export const TOKEN_BALANCE_POLL_MS = 60_000;
 export const ALL_CHAIN_FILTER = "all";
 export const DEFAULT_STABLE_SYMBOLS = ["USDT", "USDC", "DAI"] as const;
 export const TOKEN_SELECT_PREFS_STORAGE_KEY = "stableflow-pay:token-select-prefs:v1";
-export const TOKEN_SELECT_PREFS_VERSION = 3;
+export const TOKEN_SELECT_PREFS_VERSION = 4;
+/** Recent searches were added in prefs version 3. Keep this independent of the current version. */
+export const TOKEN_SELECT_PREFS_RECENT_SEARCH_VERSION = 3;
+/** Show-dust was added in prefs version 4. */
+export const TOKEN_SELECT_PREFS_SHOW_DUST_VERSION = 4;
+/** Your Tokens hides balances below this USD value while Show dust is off. */
+export const DUST_USD = 1;
+export const YOUR_TOKENS_DUST_EMPTY = "No tokens over $1";
 export const MAX_RECENT_BLOCKCHAINS = 16;
 export const MAX_RECENTLY_USED = 5;
 export const MAX_RECENT_SEARCHES = 5;

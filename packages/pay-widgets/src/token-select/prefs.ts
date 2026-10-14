@@ -2,6 +2,8 @@ import { useSyncExternalStore } from "react";
 import {
   MAX_RECENT_BLOCKCHAINS,
   MAX_RECENT_HISTORY,
+  TOKEN_SELECT_PREFS_RECENT_SEARCH_VERSION,
+  TOKEN_SELECT_PREFS_SHOW_DUST_VERSION,
   TOKEN_SELECT_PREFS_STORAGE_KEY,
   TOKEN_SELECT_PREFS_VERSION,
 } from "./config";
@@ -10,12 +12,14 @@ export type TokenSelectPrefs = {
   recentAssetIds: string[];
   recentSearchAssetIds: string[];
   recentBlockchains: string[];
+  showDust: boolean;
 };
 
 const EMPTY_PREFS: TokenSelectPrefs = {
   recentAssetIds: [],
   recentSearchAssetIds: [],
   recentBlockchains: [],
+  showDust: false,
 };
 
 function rememberId(recent: string[], assetId: string, max: number): string[] {
@@ -55,6 +59,7 @@ export function migrateTokenSelectPrefs(persisted: unknown, version: number): To
     recentAssetIds?: string[];
     recentSearchAssetIds?: string[];
     recentBlockchains?: string[];
+    showDust?: boolean;
   };
   const recentBlockchains = version >= 1
     ? cleanIds(state.recentBlockchains, MAX_RECENT_BLOCKCHAINS)
@@ -62,10 +67,13 @@ export function migrateTokenSelectPrefs(persisted: unknown, version: number): To
   const recentAssetIds = version >= 2 && Array.isArray(state.recentAssetIds)
     ? cleanIds(state.recentAssetIds, MAX_RECENT_HISTORY)
     : (typeof state.lastAssetId === "string" && state.lastAssetId ? [state.lastAssetId] : []);
-  const recentSearchAssetIds = version >= TOKEN_SELECT_PREFS_VERSION
+  const recentSearchAssetIds = version >= TOKEN_SELECT_PREFS_RECENT_SEARCH_VERSION
     ? cleanIds(state.recentSearchAssetIds, MAX_RECENT_HISTORY)
     : [];
-  return { recentAssetIds, recentSearchAssetIds, recentBlockchains };
+  const showDust = version >= TOKEN_SELECT_PREFS_SHOW_DUST_VERSION && typeof state.showDust === "boolean"
+    ? state.showDust
+    : false;
+  return { recentAssetIds, recentSearchAssetIds, recentBlockchains, showDust };
 }
 
 function readStorage(): TokenSelectPrefs {
@@ -135,6 +143,11 @@ export function setLastBlockchain(blockchain: string) {
     ...prefs,
     recentBlockchains: rememberRecentBlockchain(prefs.recentBlockchains, blockchain),
   });
+}
+
+export function setShowDust(showDust: boolean) {
+  if (prefs.showDust === showDust) return;
+  emit({ ...prefs, showDust });
 }
 
 export function useTokenSelectPrefs(): TokenSelectPrefs {

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { IconDatabase } from "@stableflow/pay-ui/icons/solid/database";
 import { IconDuration } from "@stableflow/pay-ui/icons/solid/duration";
 import { IconTrends } from "@stableflow/pay-ui/icons/outline/trends";
@@ -16,6 +17,8 @@ export type TokenListSection = {
   icon: TokenSectionIcon;
   tokens: PayToken[];
   skeletonRows?: number;
+  trailing?: ReactNode;
+  emptyLabel?: string | null;
   action?: { label: string; onClick: () => void };
 };
 
@@ -55,16 +58,24 @@ export function TokenPane(props: TokenPaneProps) {
                 <SectionIcon icon={section.icon} />
                 <span className={cx("truncate text-sm font-medium text-[#aaa]", fontSans)}>{section.title}</span>
               </span>
-              {section.action ? (
-                <button
-                  type="button"
-                  onClick={section.action.onClick}
-                  className={cx("cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-[#aaa]", fontSans)}
-                >
-                  {section.action.label}
-                </button>
+              {section.trailing || section.action ? (
+                <span className="flex shrink-0 items-center gap-2">
+                  {section.trailing}
+                  {section.action ? (
+                    <button
+                      type="button"
+                      onClick={section.action.onClick}
+                      className={cx("cursor-pointer border-0 bg-transparent p-0 text-sm font-medium text-[#aaa]", fontSans)}
+                    >
+                      {section.action.label}
+                    </button>
+                  ) : null}
+                </span>
               ) : null}
             </div>
+            ) : null}
+            {!section.skeletonRows && section.tokens.length === 0 && section.emptyLabel ? (
+              <p className={cx("px-[13px] py-4 text-[13px] text-[#606060]", fontSans)}>{section.emptyLabel}</p>
             ) : null}
             {section.skeletonRows ? <TokenListSkeleton rows={section.skeletonRows} /> : null}
             {section.tokens.map((token) => (

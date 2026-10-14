@@ -56,7 +56,7 @@ Search covers every chain while All is selected, and only the selected chain oth
 | Payer section | When it shows |
 | --- | --- |
 | Recently Used | Up to 5 cards for the current scope. Hidden for a receiver and when the scope has no history. Stays visible during search. Picking a card records Recently Used only. |
-| Your Tokens | The scope's wallet kind is connected and at least one token has a positive balance. Hidden while those balances are still loading for the first time. |
+| Your Tokens | The scope's wallet kind is connected and at least one token has a positive balance. Hidden while those balances are still loading for the first time. A Show dust switch sits on the right of the title. It is off by default and the choice is stored in token-select prefs. Off hides balances under $1. A balance of exactly $1 stays. When every positive balance in the scope is under $1, the title and switch stay and the list says "No tokens over $1". Recently Used, Recent Searches, Trends Token, and search results are not filtered. |
 | Recent Searches | Up to 5 tokens picked from search results while the query was not empty. Hidden when empty. Clear removes every stored search on All, or only the selected chain's searches. |
 | Trends Token | `TRENDS_TOKENS` that match the scope (`blockchain` + `symbol`, case-insensitive), then the other tokens in that scope. |
 
@@ -64,7 +64,7 @@ A receiver shows one flat list of every token in the scope. It does not record t
 
 Wallet connect, copy, and disconnect stay on `PayWidgetsProvider` and are not rendered.
 
-While `loading` is true the payer shows skeleton cards when the scope already has Recently Used records, then section titles with skeleton rows: Your Tokens (2, when a wallet is connected), Recent Searches (2, when that history exists), and Trends Token (6). A row that already has a balance keeps that amount on refresh. The spinner shows only while that row has no balance yet.
+While `loading` is true the payer shows skeleton cards when the scope already has Recently Used records, then section titles with skeleton rows: Your Tokens (2, when a wallet is connected, with the Show dust switch on the title), Recent Searches (2, when that history exists), and Trends Token (6). A row that already has a balance keeps that amount on refresh. The spinner shows only while that row has no balance yet.
 
 ## Sorting
 
