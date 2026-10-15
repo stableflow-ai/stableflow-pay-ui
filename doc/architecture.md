@@ -8,7 +8,7 @@ stableflow-pay-ui/
   scripts/release.mjs
 ```
 
-`pay-widgets` is a public package. It is published with `pay-ui` on the next `pnpm release`, which writes both packages to the same version. Token select is `@stableflow/pay-widgets/token-select`.
+`pay-widgets` is a public package. It is published with `pay-ui` on the next `pnpm release`, which writes both packages to the same version. Public widgets are `@stableflow/pay-widgets/token-select` and `@stableflow/pay-widgets/wallet-select`.
 
 ## Entries
 
@@ -24,7 +24,7 @@ Importing `@stableflow/pay-ui/button` loads Button and the icons Button renders.
 
 The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.ai/). A push to the connected GitHub repository publishes `apps/demo/dist` through the root `wrangler.jsonc`.
 
-Demo pages use `/{id}` paths, such as `/token-select`. Workers assets use single-page-application fallback so a refresh stays on that page. An unknown path still renders Home and keeps the address.
+Demo pages use `/{id}` paths, such as `/token-select` and `/wallet-select`. `/wallet-select` stores the preview in `state` (`mixed`, `connecting`, `loading`, `empty`, or `long`). A missing or unknown value uses `mixed`. Workers assets use single-page-application fallback so a refresh stays on that page. An unknown path still renders Home and keeps the address.
 
 `/token-select` writes its four toggles into the query so a link reopens that state: `connected` (`true` or `false`), `balances` (`async` or `sync`), `role` (`payer` or `receiver`), and `loading` (`on` or `off`). A missing or unknown value uses the default: connected, async balances, payer, loading off.
 

@@ -7,6 +7,7 @@
     "react",
     "widgets",
     "token-select",
+    "wallet-select",
     "payments",
     "tailwindcss"
   ],
@@ -22,6 +23,10 @@
     "./token-select": {
       "types": "./dist/token-select/index.d.ts",
       "import": "./dist/token-select/index.js"
+    },
+    "./wallet-select": {
+      "types": "./dist/wallet-select/index.d.ts",
+      "import": "./dist/wallet-select/index.js"
     }
   },
   "peerDependencies": {

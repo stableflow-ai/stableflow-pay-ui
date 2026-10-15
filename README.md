@@ -14,6 +14,7 @@ There is no root barrel. Import the component you render.
 ```tsx
 import { Button } from "@stableflow/pay-ui/button";
 import { TokenSelectDialog } from "@stableflow/pay-widgets/token-select";
+import { WalletSelectDialog } from "@stableflow/pay-widgets/wallet-select";
 ```
 
 ## Host setup

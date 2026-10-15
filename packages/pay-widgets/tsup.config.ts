@@ -3,6 +3,7 @@ import { defineConfig } from "tsup";
 export default defineConfig({
   entry: {
     "token-select/index": "src/token-select/index.ts",
+    "wallet-select/index": "src/wallet-select/index.ts",
   },
   format: ["esm"],
   dts: true,

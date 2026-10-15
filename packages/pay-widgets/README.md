@@ -44,3 +44,23 @@ export function Picker() {
   );
 }
 ```
+
+## Wallet select
+
+Import `@stableflow/pay-widgets/wallet-select`. `WalletSelectDialog` is presentational. It does not use `PayWidgetsProvider`, a wallet SDK, or a store. The host sorts the list and runs connect after `onSelect`.
+
+```tsx
+import { WalletSelectDialog } from "@stableflow/pay-widgets/wallet-select";
+
+export function WalletPicker() {
+  return (
+    <WalletSelectDialog
+      open={open}
+      onClose={onClose}
+      title="Select Solana Wallet"
+      wallets={wallets}
+      onSelect={onSelect}
+    />
+  );
+}
+```
