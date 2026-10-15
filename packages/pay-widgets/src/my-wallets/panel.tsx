@@ -84,7 +84,7 @@ export function MyWalletsPanel(props: {
           >
             <div className="flex shrink-0 items-center justify-between gap-2 px-5 py-4">
               <span className="min-w-0 flex-1 text-[18px] font-medium text-black">{title}</span>
-              <button type="button" aria-label="Close" className="text-[#A1A699]" onClick={onClose}>
+              <button type="button" aria-label="Close" className="cursor-pointer text-[#A1A699]" onClick={onClose}>
                 <IconClose className="size-[15px]" />
               </button>
             </div>

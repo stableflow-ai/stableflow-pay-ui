@@ -220,7 +220,7 @@ function KindCard(props: {
             type="button"
             loading={Boolean(props.account?.connecting)}
             onClick={props.onConnect}
-            className="h-8 min-w-[90px] rounded-[16px] border-0 bg-white px-3 text-[14px] font-normal text-[#444C59] shadow-[0px_2px_6px_0px_rgba(0,0,0,0.10)] hover:bg-white md:h-8 md:px-3 md:text-[14px]"
+            className="h-8 min-w-[90px] rounded-[16px] border-0 bg-white px-3 text-[14px] font-normal text-[#444C59] shadow-[0px_2px_6px_0px_rgba(0,0,0,0.10)] hover:bg-white hover:shadow-[0px_1px_3px_0px_rgba(0,0,0,0.10)] md:h-8 md:px-3 md:text-[14px]"
           >
             Connect
           </Button>
