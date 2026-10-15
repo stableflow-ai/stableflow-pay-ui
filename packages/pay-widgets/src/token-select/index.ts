@@ -8,6 +8,7 @@ export {
   type TokenBalance,
 } from "./balances";
 export { chainsFromTokens } from "./utils";
+export { defaultWalletKindMeta } from "./wallet-kind-meta";
 export { KNOWN_CHAIN_KINDS, ownerKey } from "./types";
 export type {
   BalanceReadResult,
@@ -19,4 +20,5 @@ export type {
   PayWallet,
   ReadBalances,
   TokenSelectRole,
+  WalletKindMeta,
 } from "./types";

@@ -45,6 +45,14 @@ export function Picker() {
 }
 ```
 
+## My Wallets
+
+Import `@stableflow/pay-widgets/my-wallets`. Render `MyWalletsDrawer` inside `PayWidgetsProvider`. Pass `walletKinds` on the provider. `defaultWalletKindMeta` from token-select builds the built-in card art.
+
+## Wallet chains button
+
+Import `@stableflow/pay-widgets/wallet-chains-button`. `WalletChainsButton` is Connect when nothing in the kind set is connected, and a stacked icon row otherwise. `onClick` runs in both states.
+
 ## Wallet select
 
 Import `@stableflow/pay-widgets/wallet-select`. `WalletSelectDialog` is presentational. It does not use `PayWidgetsProvider`, a wallet SDK, or a store. The host sorts the list and runs connect after `onSelect`.

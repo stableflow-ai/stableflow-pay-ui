@@ -8,7 +8,7 @@ stableflow-pay-ui/
   scripts/release.mjs
 ```
 
-`pay-widgets` is a public package. It is published with `pay-ui` on the next `pnpm release`, which writes both packages to the same version. Public widgets are `@stableflow/pay-widgets/token-select` and `@stableflow/pay-widgets/wallet-select`.
+`pay-widgets` is a public package. It is published with `pay-ui` on the next `pnpm release`, which writes both packages to the same version. Public widgets are `@stableflow/pay-widgets/token-select`, `@stableflow/pay-widgets/wallet-select`, `@stableflow/pay-widgets/my-wallets`, and `@stableflow/pay-widgets/wallet-chains-button`.
 
 ## Entries
 
@@ -27,6 +27,8 @@ The deployed demo is [https://ui.pay.stableflow.ai/](https://ui.pay.stableflow.a
 Demo pages use `/{id}` paths, such as `/token-select` and `/wallet-select`. `/wallet-select` stores the preview in `state` (`mixed`, `connecting`, `loading`, `empty`, or `long`). A missing or unknown value uses `mixed`. Workers assets use single-page-application fallback so a refresh stays on that page. An unknown path still renders Home and keeps the address.
 
 `/token-select` writes its four toggles into the query so a link reopens that state: `connected` (`true` or `false`), `balances` (`async` or `sync`), `role` (`payer` or `receiver`), and `loading` (`on` or `off`). A missing or unknown value uses the default: connected, async balances, payer, loading off.
+
+`/my-wallets` and `/wallet-chains-button` share `connected` (`none`, `some`, or `all`), `balances` (`loading`, `empty`, or `ok`), and `target` (`none`, `on`, or `disabled`). A missing or unknown value uses some, ok, and on. `/my-wallets` opens the drawer on first paint.
 
 ## Data boundary
 

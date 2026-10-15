@@ -27,6 +27,14 @@
     "./wallet-select": {
       "types": "./dist/wallet-select/index.d.ts",
       "import": "./dist/wallet-select/index.js"
+    },
+    "./wallet-chains-button": {
+      "types": "./dist/wallet-chains-button/index.d.ts",
+      "import": "./dist/wallet-chains-button/index.js"
+    },
+    "./my-wallets": {
+      "types": "./dist/my-wallets/index.d.ts",
+      "import": "./dist/my-wallets/index.js"
     }
   },
   "peerDependencies": {

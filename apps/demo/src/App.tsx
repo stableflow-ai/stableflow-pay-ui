@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { IconsPage } from "./icons-page";
+import { MyWalletsPage } from "./my-wallets-page";
 import { TokenSelectPage } from "./token-select-page";
+import { WalletChainsButtonPage } from "./wallet-chains-button-page";
 import { WalletSelectPage } from "./wallet-select-page";
 import {
   AutocompletePage,
@@ -45,6 +47,8 @@ const UI_PAGES = [
 const WIDGET_PAGES = [
   ["token-select", "Token select", TokenSelectPage],
   ["wallet-select", "Wallet select", WalletSelectPage],
+  ["my-wallets", "My Wallets", MyWalletsPage],
+  ["wallet-chains-button", "Wallet chains", WalletChainsButtonPage],
 ] as const;
 
 type PageId = "home" | (typeof UI_PAGES)[number][0] | (typeof WIDGET_PAGES)[number][0];
@@ -70,7 +74,7 @@ function HomePage(props: { onOpen: (id: PageId) => void }) {
       </button>
       <button type="button" className="demo-home-card" onClick={() => props.onOpen(WIDGET_PAGES[0][0])}>
         <strong>Widgets</strong>
-        <span>Token select, wallet select, and other composed flows.</span>
+        <span>Token select, wallet select, My Wallets, and the chain stack button.</span>
       </button>
     </Page>
   );

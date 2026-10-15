@@ -4,6 +4,7 @@ Widget notes live here. Presentational components stay in [../components/CHANGEL
 
 ## Unreleased
 
+- Added `@stableflow/pay-widgets/my-wallets` and `@stableflow/pay-widgets/wallet-chains-button`. `PayWidgetsProvider` accepts `walletKinds`. `defaultWalletKindMeta` supplies labels, gradients, and CDN icons, with `sol`/`solana` and `zec`/`zcash` aliases. Documented in `doc/widgets/my-wallets.md` and `doc/widgets/wallet-chains-button.md`.
 - Added `@stableflow/pay-widgets/wallet-select`. `WalletSelectDialog` is a presentational wallet list: the host supplies order, detected state, and connect behavior. Documented in `doc/widgets/wallet-select.md`.
 - Your Tokens has a Show dust switch. It is off by default, remembered in token-select prefs, and hides balances under $1. Exactly $1 stays visible. An empty filtered list keeps the title and says "No tokens over $1".
 - DAI is a stablecoin and sorts last among them, after USDT and USDC.

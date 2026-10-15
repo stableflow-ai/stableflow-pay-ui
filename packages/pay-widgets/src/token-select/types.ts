@@ -2,6 +2,15 @@ export type ChainKind = string;
 
 export const KNOWN_CHAIN_KINDS = ["evm", "near", "solana", "tron", "zec"] as const;
 
+export type WalletKindMeta = {
+  kind: ChainKind;
+  label: string;
+  icon: string;
+  iconGray: string;
+  bg?: string;
+  bgColor?: string;
+};
+
 export type PayChain = {
   blockchain: string;
   chainName: string;

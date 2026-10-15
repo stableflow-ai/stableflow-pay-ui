@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { createContext, useContext } from "react";
 import { clearPayTokenBalances, configureBalanceReaders, setBalanceTokens } from "./balances";
 import { DEFAULT_STABLE_SYMBOLS } from "./config";
-import type { PayToken, PayWallet, ReadBalances } from "./types";
+import type { PayToken, PayWallet, ReadBalances, WalletKindMeta } from "./types";
 
 export type PayBalanceMode = "async" | "sync" | "none";
 
@@ -13,6 +13,7 @@ type PayWidgetsContextValue = {
   stableSymbols: string[];
   chainKindLabels: Record<string, string>;
   onCopyAddress?: (address: string) => void;
+  walletKinds: WalletKindMeta[];
   balanceMode: PayBalanceMode;
   getBalance: ((token: PayToken, owner: string) => string | null | undefined) | null;
   isBalanceLoading: ((token: PayToken, owner: string) => boolean) | null;
@@ -30,6 +31,7 @@ export type PayWidgetsProviderProps = {
   stableSymbols?: string[];
   chainKindLabels?: Record<string, string>;
   onCopyAddress?: (address: string) => void;
+  walletKinds?: WalletKindMeta[];
   children: ReactNode;
 };
 
@@ -60,6 +62,7 @@ export function PayWidgetsProvider(props: PayWidgetsProviderProps) {
     onCopyAddress,
     stableSymbols = [...DEFAULT_STABLE_SYMBOLS],
     chainKindLabels = {},
+    walletKinds = [],
     children,
   } = props;
 
@@ -90,6 +93,7 @@ export function PayWidgetsProvider(props: PayWidgetsProviderProps) {
     stableSymbols,
     chainKindLabels,
     onCopyAddress,
+    walletKinds,
     balanceMode,
     getBalance: balanceMode === "sync" ? getBalance ?? null : null,
     isBalanceLoading: balanceMode === "sync" ? isBalanceLoading ?? null : null,

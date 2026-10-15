@@ -29,6 +29,7 @@ Render `TokenSelectDialog` inside `PayWidgetsProvider`. The dialog throws if tha
 | `stableSymbols` | Stablecoin order. Defaults to `USDT`, then `USDC`, then `DAI`. |
 | `chainKindLabels` | Display names for chain kinds. Built-in labels are used when a kind is missing. |
 | `onCopyAddress` | Called when the user copies a connected address. |
+| `walletKinds` | Optional `WalletKindMeta[]` for My Wallets and the chain stack button. Defaults to `[]`. Token select ignores it. |
 
 Pass one balance mode. If both `readBalances` and `getBalance` are set, async `readBalances` is used. If neither is set, development builds log a warning.
 
@@ -46,6 +47,8 @@ const tokens = useMemo(
 ```
 
 `normalizePayConfig` returns `PayToken[]`. `chainKinds` overrides the built-in network code map for that call only. `tokenAssetId(network, symbol, contractAddress)` builds the id used by normalized tokens.
+
+`defaultWalletKindMeta(kind)` returns the built-in label, card gradient, and CDN icons for `evm`, `near`, `solana` (`sol`), `tron`, `zec` (`zcash`), `aptos`, `ton`, `sui`, and `btc`. `sol` and `solana` share one spec, and `zec` and `zcash` share one. The returned `kind` is the string you passed. Unknown kinds return `null`. Icons are `https://assets.dapdap.net/stableflow/networks/type-<name>.svg` and `type-<name>-gray.svg`.
 
 ## Views
 
