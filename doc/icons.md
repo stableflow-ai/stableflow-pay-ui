@@ -51,7 +51,6 @@ Outline and solid are visual styles. The choice does not follow whether the SVG 
 - `member`
 - `meno`
 - `menu`
-- `more`
 - `office`
 - `operations`
 - `otc-treasury`
@@ -61,7 +60,6 @@ Outline and solid are visual styles. The choice does not follow whether the SVG 
 - `payroll`
 - `plus`
 - `private`
-- `processing`
 - `procurement`
 - `question`
 - `receipt`
@@ -73,7 +71,6 @@ Outline and solid are visual styles. The choice does not follow whether the SVG 
 - `reset-password`
 - `search`
 - `setting`
-- `settings`
 - `shield`
 - `support`
 - `swap`
@@ -91,11 +88,10 @@ Outline and solid are visual styles. The choice does not follow whether the SVG 
 - `duration` (`IconDuration`, `IconDuration2`)
 - `eye` (`IconEye`)
 - `fee`
-- `field-error`
 - `google`
 - `lock`
 - `money`
 - `node`
-- `payout-status` (`IconPayoutPending`, `IconPayoutFailed`, `IconPayoutPaid`)
+- `payout-status` (`IconPayoutPending`, `IconPayoutPaid`)
 - `pen`
 - `success`

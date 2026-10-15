@@ -72,14 +72,10 @@ import { IconWallet } from "@stableflow/pay-ui/icons/outline/wallet";
 import { IconWebhooks } from "@stableflow/pay-ui/icons/outline/webhooks";
 import { IconTrends } from "@stableflow/pay-ui/icons/outline/trends";
 import { IconBack } from "@stableflow/pay-ui/icons/outline/back";
-import { IconMore } from "@stableflow/pay-ui/icons/outline/more";
-import { IconProcessing } from "@stableflow/pay-ui/icons/outline/processing";
-import { IconSettings } from "@stableflow/pay-ui/icons/outline/settings";
 import { IconDatabase } from "@stableflow/pay-ui/icons/solid/database";
 import { IconDuration, IconDuration2 } from "@stableflow/pay-ui/icons/solid/duration";
 import { IconEye } from "@stableflow/pay-ui/icons/solid/eye";
-import { IconFieldError } from "@stableflow/pay-ui/icons/solid/field-error";
-import { IconPayoutPending, IconPayoutFailed, IconPayoutPaid } from "@stableflow/pay-ui/icons/solid/payout-status";
+import { IconPayoutPending, IconPayoutPaid } from "@stableflow/pay-ui/icons/solid/payout-status";
 import { IconSuccess } from "@stableflow/pay-ui/icons/solid/success";
 import { Page } from "./theme";
 
@@ -152,9 +148,6 @@ const OUTLINE: { file: string; name: string; Icon: ComponentType<IconProps> }[] 
   { file: "wallet", name: "IconWallet", Icon: IconWallet },
   { file: "webhooks", name: "IconWebhooks", Icon: IconWebhooks },
   { file: "back", name: "IconBack", Icon: IconBack },
-  { file: "more", name: "IconMore", Icon: IconMore },
-  { file: "processing", name: "IconProcessing", Icon: IconProcessing },
-  { file: "settings", name: "IconSettings", Icon: IconSettings },
   { file: "trends", name: "IconTrends", Icon: IconTrends },
 ];
 
@@ -165,13 +158,11 @@ const SOLID: { file: string; name: string; Icon: ComponentType<IconProps> }[] = 
   { file: "duration", name: "IconDuration2", Icon: IconDuration2 },
   { file: "eye", name: "IconEye", Icon: IconEye },
   { file: "fee", name: "IconFee", Icon: IconFee },
-  { file: "field-error", name: "IconFieldError", Icon: IconFieldError },
   { file: "google", name: "IconGoogle", Icon: IconGoogle },
   { file: "lock", name: "IconLock", Icon: IconLock },
   { file: "money", name: "IconMoney", Icon: IconMoney },
   { file: "node", name: "IconNode", Icon: IconNode },
   { file: "payout-status", name: "IconPayoutPending", Icon: IconPayoutPending },
-  { file: "payout-status", name: "IconPayoutFailed", Icon: IconPayoutFailed },
   { file: "payout-status", name: "IconPayoutPaid", Icon: IconPayoutPaid },
   { file: "pen", name: "IconPen", Icon: IconPen },
   { file: "success", name: "IconSuccess", Icon: IconSuccess },
